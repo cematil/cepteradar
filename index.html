@@ -487,7 +487,7 @@
                         <span class="text-amber-400 text-sm">👁️</span>
                         <div>
                             <strong class="text-white block font-semibold">Yol Çalışmalarını Kapatma:</strong>
-                            Sağ üstteki katman menüsünden <em class="text-amber-300">"KGM Yol Çalışmaları"</em> kutucuğunun işaretini kaldırabilirsiniz.
+                            Sağ üstteki katman menüsünden <em class="text-amber-300">"KGM Yol Çalışmaları"</em> kutucuğunun işaretini açıp kapatabilirsiniz.
                         </div>
                     </div>
 
@@ -567,13 +567,16 @@
 
         const map = L.map('map', { center: [39.0, 35.0], zoom: 6, layers: [realStreetTile] });
 
+        // KGM Katmanı varsayılan olarak kapalı olması için .addTo(map) kaldırıldı
         const kgmYolDurumuLayer = L.esri.dynamicMapLayer({
             url: 'https://giscbs.kgm.gov.tr/server/rest/services/YolDurumu/YolDurumu/MapServer',
             opacity: 0.9,
             layers: [0, 1, 2, 3]
-        }).addTo(map);
+        });
 
         map.on('click', function (e) {
+            if (!map.hasLayer(kgmYolDurumuLayer)) return;
+
             const size = map.getSize();
 
             kgmYolDurumuLayer.identify()
@@ -800,7 +803,7 @@
                 }
             });
 
-            if (!warnedRoadWork) {
+            if (!warnedRoadWork && map.hasLayer(kgmYolDurumuLayer)) {
                 L.esri.query({ url: 'https://giscbs.kgm.gov.tr/server/rest/services/YolDurumu/YolDurumu/MapServer/0' })
                     .nearby(coords, 1500)
                     .run(function (error, featureCollection) {
