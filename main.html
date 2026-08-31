@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- 🚀 SEO TEMEL META ETİKETLERİ -->
+    <title>Türkiye Yol Bakım Onarım Çalışmaları ve Kapalı Yollar Haritası | KGM Canlı Takip</title>
+    <meta name="description" content="Karayolları Genel Müdürlüğü (KGM) canlı verileriyle Türkiye genelindeki yol bakım çalışmaları, kapalı yollar ve onarım sahalarını harita üzerinde anlık inceleyin.">
+    <meta name="keywords" content="kgm yol durumu, kapalı yollar haritası, yol bakım çalışmaları, karayolları çalışması, canlı yol durumu, yol onarım sahaları">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+    <meta name="author" content="Cepte Radar - KGM Yol Takip">
+    <link rel="canonical" href="https://cepteradar.com/main.html">
+
+    <!-- 🌐 OPEN GRAPH PAYLAŞIM META ETİKETLERİ -->
+    <meta property="og:locale" content="tr_TR">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Türkiye Canlı Yol Bakım & Kapalı Yollar Haritası">
+    <meta property="og:description" content="Güzergahınızdaki tüm KGM yol çalışmaları ve kapanmaları haritada canlı görün.">
+    <meta property="og:url" content="https://cepteradar.com/main.html">
+    <meta property="og:site_name" content="Cepte Radar - Yol Bakım">
+    <meta property="og:image" content="https://cepteradar.com/assets/og-main.jpg">
+
+    <!-- 🐦 TWITTER CARD META ETİKETLERİ -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="KGM Canlı Yol Çalışmaları & Kapalı Yollar">
+    <meta name="twitter:description" content="Karayollarındaki aktif şantiyeler, bakım sahaları ve kapalı geçitler anlık haritada.">
+    <meta name="twitter:image" content="https://cepteradar.com/assets/og-main.jpg">
+
+    <!-- 🏢 JSON-LD YAPISAL VERİ (SCHEMA.ORG) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "GovernmentService",
+      "name": "KGM Canlı Yol Durumu ve Bakım Haritası",
+      "url": "https://cepteradar.com/main.html",
+      "description": "Karayolları Genel Müdürlüğü veri altyapısıyla Türkiye yollarındaki çalışma ve kapanmaları canlı sorgulama servisi.",
+      "provider": {
+        "@type": "Organization",
+        "name": "Cepte Radar Yol Asistanı"
+      },
+      "areaServed": "TR"
+    }
+    </script>
+
+    <!-- SAĞ TIKLAMA VE KOPYALAMA ENGELLEYİCİ GÜVENLİK KATMANI -->
+    <script>
+      (function() {
+        'use strict';
+
+        document.addEventListener('contextmenu', function(e) {
+          e.preventDefault();
+          return false;
+        });
+
+        document.addEventListener('selectstart', function(e) { e.preventDefault(); });
+        document.addEventListener('dragstart', function(e) { e.preventDefault(); });
+
+        document.addEventListener('keydown', function(e) {
+          if (
+            e.keyCode === 123 || 
+            (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) || 
+            (e.ctrlKey && (e.keyCode === 85 || e.keyCode === 83))
+          ) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }
+        });
+      })();
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://js.arcgis.com/3.34/esri/css/esri.css">
+    <link rel="stylesheet" href="https://js.arcgis.com/3.34/dijit/themes/claro/claro.css">
+    
+    <style>
+        /* 🚧 YOL BAKIM VE ÇALIŞMA LOGOSU İÇİN SPLASH STİLLERİ VE ANİMASYONLARI */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #0F172A;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999999;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+
+        @keyframes gearRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes conePulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes stripeMove {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: 40; }
+        }
+
+        .gear-spin {
+            animation: gearRotate 6s infinite linear;
+            transform-origin: 256px 200px;
+        }
+
+        .cone-bounce {
+            animation: conePulse 1.5s infinite ease-in-out;
+            transform-origin: 256px 220px;
+        }
+
+        .stripe-animated {
+            stroke-dasharray: 20 20;
+            animation: stripeMove 1.5s infinite linear;
+        }
+
+        /* TÜM SEÇİM VE KOPYALAMAYI KİLİTLENEN CSS */
+        * {
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            user-select: none !important;
+            -webkit-touch-callout: none !important;
+        }
+
+        html, body, #mapDiv {
+            padding: 0; margin: 0; height: 100%; width: 100%; overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #sidebar {
+            position: absolute; top: 15px; right: 15px; width: 380px;
+            background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(12px);
+            z-index: 99; padding: 20px; border-radius: 16px;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #f8fafc;
+        }
+        h2 { margin-top: 0; font-size: 18px; color: #f8fafc; font-weight: 700; }
+        .panel-group { margin-bottom: 15px; }
+        .panel-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px; color: #94a3b8; }
+        .panel-group select { 
+            width: 100%; padding: 10px; border: 1px solid #334155; 
+            border-radius: 8px; background: #1e293b; font-size: 14px; color: #fff;
+            outline: none; transition: border-color 0.2s;
+        }
+        .panel-group select:focus { border-color: #0d9488; }
+        .layer-options { background: #1e293b; padding: 12px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #334155; }
+        .layer-options label { font-weight: normal; cursor: pointer; display: flex; align-items: center; margin-bottom: 8px; font-size: 13px; color: #cbd5e1; }
+        .layer-options input { margin-right: 10px; transform: scale(1.2); accent-color: #0d9488; }
+        .btn-analiz {
+            background: linear-gradient(135deg, #0d9488, #0f766e); color: white; border: none;
+            padding: 12px 15px; width: 100%; cursor: pointer; border-radius: 8px;
+            font-weight: 700; font-size: 14px; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);
+            transition: all 0.3s ease;
+        }
+        .btn-analiz:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(13, 148, 136, 0.6); }
+        #sonucPaneli {
+            margin-top: 15px; max-height: 200px; overflow-y: auto; font-size: 12px;
+            background: #0f172a; padding: 12px; border: 1px solid #334155; border-radius: 10px; display: none; line-height: 1.5;
+            color: #e2e8f0;
+        }
+        .uyari-item {
+            border-left: 4px solid #ef4444; padding: 10px; margin-top: 8px;
+            background: rgba(239, 68, 68, 0.1); border-radius: 0 8px 8px 0;
+            border-top: 1px solid rgba(239, 68, 68, 0.2);
+            border-right: 1px solid rgba(239, 68, 68, 0.2);
+            border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        .hava-item {
+            border-left: 4px solid #38bdf8; padding: 10px; margin-top: 8px;
+            background: rgba(56, 189, 248, 0.1); border-radius: 0 8px 8px 0;
+            border-top: 1px solid rgba(56, 189, 248, 0.2);
+            border-right: 1px solid rgba(56, 189, 248, 0.2);
+            border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+        }
+        #navBanner {
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.9); color: #fff; padding: 10px 22px; border-radius: 30px;
+            z-index: 100; font-size: 13px; font-weight: 600; box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            display: flex; align-items: center; gap: 10px; border: 1px solid rgba(255,255,255,0.15);
+            backdrop-filter: blur(8px);
+        }
+        .nav-pulse { width: 10px; height: 10px; background: #22c55e; border-radius: 50%; animation: pulseDot 1.5s infinite; }
+        @keyframes pulseDot {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.8); }
+            70% { transform: scale(1.15); box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        /* POPUP TEMA ÖZELLEŞTİRMESİ */
+        .esriPopup .titlePane { background-color: #0f172a !important; color: #38bdf8 !important; font-weight: bold; }
+        .esriPopup .contentPane { background-color: #1e293b !important; color: #f8fafc !important; font-size: 12px; }
+        .esriPopup .outerPointer, .esriPopup .pointer { background-color: #1e293b !important; }
+    </style>
+
+    <script src="https://js.arcgis.com/3.34/"></script>
+    <script>
+        var map, yolCalismaLayer, yolKapaliLayer, watchId = null, userGraphic = null;
+
+        var ilKoordinatlari = {
+            "Adana": [35.3213, 37.0000], "Adıyaman": [38.2753, 37.7648], "Afyonkarahisar": [30.5567, 38.7507], "Ağrı": [43.0503, 39.7191],
+            "Amasya": [35.8330, 40.6540], "Ankara": [32.8597, 39.9334], "Antalya": [30.7133, 36.8969], "Artvin": [41.8183, 41.1828],
+            "Aydın": [27.8456, 37.8444], "Balıkesir": [27.8862, 39.6484], "Bilecik": [29.9793, 40.1451], "Bingöl": [40.4939, 38.8854],
+            "Bitlis": [42.1091, 38.4006], "Bolu": [31.6067, 40.7350], "Burdur": [30.2913, 37.7246], "Bursa": [29.0610, 40.1828],
+            "Çanakkale": [26.4085, 40.1553], "Çankırı": [33.6160, 40.6013], "Çorum": [34.9556, 40.5506], "Denizli": [29.0875, 37.7765],
+            "Diyarbakır": [40.2306, 37.9144], "Edirne": [26.5562, 41.6771], "Elazığ": [39.2239, 38.6810], "Erzincan": [39.4907, 39.7500],
+            "Erzurum": [41.2766, 39.9043], "Eskişehir": [30.5256, 39.7767], "Gaziantep": [37.3781, 37.0662], "Giresun": [38.3889, 40.9128],
+            "Gümüşhane": [39.4759, 40.4600], "Hakkari": [43.7381, 37.5833], "Hatay": [36.1618, 36.2023], "Isparta": [30.5539, 37.7648],
+            "Mersin": [34.6415, 36.8121], "İstanbul": [28.9784, 41.0082], "İzmir": [27.1428, 38.4237], "Kars": [43.0975, 40.6013],
+            "Kastamonu": [33.7827, 41.3887], "Kayseri": [35.4853, 38.7312], "Kırklareli": [27.2244, 41.7333], "Kırşehir": [34.1622, 39.1425], "Kocaeli": [29.9160, 40.7654],
+            "Konya": [32.4846, 37.8667], "Kütahya": [29.9833, 39.4167], "Malatya": [38.3184, 38.3552], "Manisa": [27.4289, 38.6191],
+            "Kahramanmaraş": [36.9371, 37.5858], "Mardin": [40.7350, 37.3211], "Muğla": [28.3667, 37.2153], "Muş": [41.4911, 38.7439],
+            "Nevşehir": [34.7144, 38.6244], "Niğde": [34.6800, 37.9667], "Ordu": [37.8764, 40.9839], "Rize": [40.5233, 41.0201],
+            "Sakarya": [30.4026, 40.7569], "Samsun": [36.3300, 41.2867], "Siirt": [41.9428, 37.9333], "Sinop": [35.1556, 42.0231],
+            "Sivas": [37.0150, 39.7477], "Tekirdağ": [27.5119, 40.9833], "Tokat": [36.5542, 40.3167], "Trabzon": [39.7200, 41.0015],
+            "Tunceli": [39.5467, 39.1083], "Şanlıurfa": [38.7955, 37.1591], "Uşak": [29.4058, 38.6823], "Van": [43.3765, 38.4891],
+            "Yozgat": [34.8092, 39.8181], "Zonguldak": [31.7987, 41.4564], "Aksaray": [34.0324, 38.3687], "Bayburt": [40.2249, 40.2552],
+            "Karaman": [33.2215, 37.1759], "Kırıkkale": [33.5150, 39.8468], "Batman": [41.1351, 37.8812], "Şırnak": [42.4591, 37.5215],
+            "Bartın": [32.3375, 41.6344], "Ardahan": [42.7022, 41.1105], "Iğdır": [44.0450, 39.9167], "Yalova": [29.2697, 40.6500],
+            "Karabük": [32.6227, 41.2061], "Kilis": [37.1150, 36.7184], "Osmaniye": [36.2474, 37.0742], "Düzce": [31.1556, 40.8533]
+        };
+
+        require([
+            "esri/map",
+            "esri/layers/OpenStreetMapLayer",
+            "esri/layers/ArcGISDynamicMapServiceLayer",
+            "esri/symbols/SimpleLineSymbol",
+            "esri/symbols/SimpleMarkerSymbol",
+            "esri/symbols/TextSymbol",
+            "esri/symbols/Font",
+            "esri/graphic",
+            "esri/geometry/Polyline",
+            "esri/geometry/Point",
+            "esri/tasks/query",
+            "esri/tasks/QueryTask",
+            "esri/InfoTemplate",
+            "esri/Color",
+            "dojo/parser",
+            "dojo/dom",
+            "dojo/on",
+            "dojo/domReady!"
+        ], function (Map, OpenStreetMapLayer, ArcGISDynamicMapServiceLayer, SimpleLineSymbol, SimpleMarkerSymbol, TextSymbol, Font, Graphic, Polyline, Point, Query, QueryTask, InfoTemplate, Color, parser, dom, on) {
+            parser.parse();
+
+            var selectBaslangic = dom.byId("selectBaslangic");
+            var selectBitis = dom.byId("selectBitis");
+
+            Object.keys(ilKoordinatlari).sort().forEach(function(il) {
+                selectBaslangic.add(new Option(il, il));
+                selectBitis.add(new Option(il, il));
+            });
+            selectBaslangic.value = "Ankara";
+            selectBitis.value = "İstanbul";
+
+            // HARİTAYI OPENSTREETMAP İLE BAŞLATMA
+            map = new Map("mapDiv", {
+                center: [35.2433, 38.9637], 
+                zoom: 7
+            });
+
+            var osmLayer = new OpenStreetMapLayer();
+            map.addLayer(osmLayer);
+
+            // POPUP TEMPLATE TANIMLAMASI
+            var yolInfoTemplate = new InfoTemplate("🚧 Yol Durumu Bilgisi", "<b>Açıklama / Neden:</b> ${nedeni}<br><b>Yol Adı:</b> ${yolunadi}<br><b>Bölge/İl:</b> ${KAYNAK_ADI}");
+
+            yolCalismaLayer = new ArcGISDynamicMapServiceLayer("https://giscbs.kgm.gov.tr/server/rest/services/YolDurumu/YolDurumu/MapServer", { opacity: 0.9, visible: true });
+            yolCalismaLayer.setVisibleLayers([0, 2]);
+            yolCalismaLayer.setLayerDefinitions({0: "1=0", 2: "1=0"});
+            map.addLayer(yolCalismaLayer);
+
+            yolKapaliLayer = new ArcGISDynamicMapServiceLayer("https://giscbs.kgm.gov.tr/server/rest/services/YolDurumu/YolDurumu/MapServer", { opacity: 0.9, visible: true });
+            yolKapaliLayer.setVisibleLayers([1, 3]);
+            yolKapaliLayer.setLayerDefinitions({1: "1=0", 3: "1=0"});
+            map.addLayer(yolKapaliLayer);
+
+            on(dom.byId("chkCalismaYollari"), "change", function (e) { yolCalismaLayer.setVisibility(e.target.checked); });
+            on(dom.byId("chkKapaliYollar"), "change", function (e) { yolKapaliLayer.setVisibility(e.target.checked); });
+
+            // HARİTADA SİMGEYE VEYA HERHANGİ BİR NOKTAYA TIKLANDIĞINDA POPUP + DETAY BİLGİSİ GÖSTERİMİ
+            map.on("click", function(evt) {
+                tiklananKonumYolDurumuSorgula(evt.mapPoint);
+            });
+
+            function tiklananKonumYolDurumuSorgula(mapPoint) {
+                var queryTask = new QueryTask("https://giscbs.kgm.gov.tr/server/rest/services/YolDurumu/YolDurumu/MapServer/0");
+                var query = new Query();
+                query.returnGeometry = true;
+                query.outFields = ["*"];
+                query.geometry = mapPoint;
+                query.distance = 5000;
+                query.units = "esriSRUnit_Meter";
+                query.spatialRelationship = Query.SPATIAL_REL_INTERSECTS;
+
+                queryTask.execute(query, function(res) {
+                    var panel = dom.byId("sonucPaneli");
+                    panel.style.display = "block";
+
+                    if (res.features && res.features.length > 0) {
+                        res.features.forEach(function(feat) {
+                            var aciklama = feat.attributes.nedeni || feat.attributes.yolunadi || "Aktif Yol Çalışması / Engeli";
+                            var yolAdi = feat.attributes.yolunadi || "Karayolu Hattı";
+                            var kaynakIl = feat.attributes.KAYNAK_ADI || "Genel Bölge";
+
+                            // HARİTADA AÇILACAK POPUP İÇERİĞİ
+                            map.infoWindow.setTitle("🚧 Yol Engel Bildirimi");
+                            map.infoWindow.setContent(
+                                "<div style='padding:4px;'>" +
+                                "<b style='color:#ef4444;'>Durum / Nedeni:</b> " + aciklama + "<br>" +
+                                "<b style='color:#38bdf8;'>Güzergah:</b> " + yolAdi + "<br>" +
+                                "<b style='color:#eab308;'>İl / Bölge:</b> " + kaynakIl +
+                                "</div>"
+                            );
+                            map.infoWindow.show(mapPoint);
+
+                            if(panel.innerHTML.indexOf(aciklama) === -1) {
+                                panel.innerHTML += "<div class='uyari-item'><b>🚧 TIKLANAN SİMGEDEKİ YOL ENGELİ:</b> " + aciklama + " (" + yolAdi + ")</div>";
+                            }
+                        });
+                    } else {
+                        map.infoWindow.setTitle("ℹ️ Bilgi");
+                        map.infoWindow.setContent("Tıklanan noktanın 5 km çevresinde bildirilen aktif bir yol çalışması veya yol kapaması bulunmamaktadır.");
+                        map.infoWindow.show(mapPoint);
+
+                        panel.innerHTML += "<div class='uyari-item' style='border-left-color: #eab308; background: rgba(234, 179, 8, 0.1);'><b>ℹ️ Yol Durumu:</b> Tıklanan noktanın etrafında engelli yol bulunmuyor.</div>";
+                    }
+                    panel.scrollTop = panel.scrollHeight;
+                });
+            }
+
+            // CANLI HAVA DURUMU VE GÖRÜŞ MESAFESİ SORGU FONKSİYONU
+            function havaDurumuSorgulaVeGoster(lon, lat, point, baslik) {
+                var weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,visibility";
+
+                fetch(weatherUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.current) {
+                            var temp = data.current.temperature_2m;
+                            var windspeed = data.current.wind_speed_10m;
+                            var weatherCode = data.current.weather_code;
+                            var visibilityMeters = data.current.visibility || 10000;
+                            var gorusKm = Math.round(visibilityMeters / 1000);
+                            
+                            var durumAciklama = "Açık";
+                            var havaEmoji = "☀️";
+                            if (weatherCode === 0) { durumAciklama = "Açık"; havaEmoji = "☀️"; }
+                            else if (weatherCode >= 1 && weatherCode <= 3) { durumAciklama = "Bulutlu"; havaEmoji = "⛅"; }
+                            else if (weatherCode >= 45 && weatherCode <= 48) { durumAciklama = "Sisli"; havaEmoji = "🌫️"; }
+                            else if (weatherCode >= 51 && weatherCode <= 67) { durumAciklama = "Yağmurlu"; havaEmoji = "🌧️"; }
+                            else if (weatherCode >= 71 && weatherCode <= 77) { durumAciklama = "Karlı"; havaEmoji = "❄️"; }
+                            else if (weatherCode >= 95) { durumAciklama = "Fırtınalı"; havaEmoji = "⚡"; }
+
+                            var font = new Font("11pt", Font.STYLE_NORMAL, Font.VARIANT_NORMAL, Font.WEIGHT_BOLD, "Segoe UI");
+                            var textSymbol = new TextSymbol(havaEmoji + " " + baslik + ": " + temp + "°C (" + durumAciklama + " - Görüş: " + gorusKm + " km)", font, new Color([15, 23, 42]));
+                            textSymbol.setOffset(0, 22);
+
+                            var outerSymbol = new SimpleMarkerSymbol(
+                                SimpleMarkerSymbol.STYLE_CIRCLE, 18,
+                                new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID, new Color([255, 255, 255]), 3),
+                                new Color([13, 148, 136, 0.9])
+                            );
+                            
+                            map.graphics.add(new Graphic(point, outerSymbol));
+                            map.graphics.add(new Graphic(point, textSymbol));
+
+                            var panel = dom.byId("sonucPaneli");
+                            panel.style.display = "block";
+                            panel.innerHTML += "<div class='hava-item'><b>" + havaEmoji + " " + baslik + " Hava Durumu:</b> " + temp + "°C, " + durumAciklama + " | <b>Görüş Mesafesi:</b> " + gorusKm + " km, <b>Rüzgar:</b> " + windspeed + " km/s</div>";
+                            panel.scrollTop = panel.scrollHeight;
+                        }
+                    });
+            }
+
+            function arkaPlandaKonumTakibiBaslat() {
+                if (!navigator.geolocation) return;
+
+                watchId = navigator.geolocation.watchPosition(function(position) {
+                    var userLon = position.coords.longitude;
+                    var userLat = position.coords.latitude;
+
+                    dom.byId("navText").innerHTML = "📡 Konum Takibi Aktif (" + userLat.toFixed(4) + ", " + userLon.toFixed(4) + ")";
+
+                    var userPoint = new Point(userLon, userLat, map.spatialReference);
+                    
+                    var markerSymbol = new SimpleMarkerSymbol(
+                        SimpleMarkerSymbol.STYLE_CIRCLE, 20,
+                        new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID, new Color([255, 255, 255]), 3),
+                        new Color([14, 165, 233, 0.95])
+                    );
+                    
+                    if (userGraphic) {
+                        map.graphics.remove(userGraphic);
+                    }
+                    userGraphic = new Graphic(userPoint, markerSymbol);
+                    map.graphics.add(userGraphic);
+
+                    var queryTask = new QueryTask("https://giscbs.kgm.gov.tr/server/rest/services/YolDurumu/YolDurumu/MapServer/0");
+                    var query = new Query();
+                    query.returnGeometry = true;
+                    query.outFields = ["*"];
+                    query.geometry = userPoint;
+                    query.distance = 5000;
+                    query.units = "esriSRUnit_Meter";
+                    query.spatialRelationship = Query.SPATIAL_REL_INTERSECTS;
+
+                    queryTask.execute(query, function(res) {
+                        if (res.features && res.features.length > 0) {
+                            var feature = res.features[0];
+                            var aciklama = feature.attributes.nedeni || feature.attributes.yolunadi || "Çalışma Bölgesi";
+                            var panel = dom.byId("sonucPaneli");
+                            panel.style.display = "block";
+                            if(panel.innerHTML.indexOf(aciklama) === -1) {
+                                panel.innerHTML += "<div class='uyari-item'><b>⚠️ YAKININIZDA ÇALIŞMA VAR:</b> " + aciklama + "</div>";
+                                panel.scrollTop = panel.scrollHeight;
+                            }
+                        }
+                    });
+                }, function(error) {
+                    dom.byId("navText").innerHTML = "Konum izni bekleniyor / Alınamadı.";
+                }, {
+                    enableHighAccuracy: false,
+                    maximumAge: 60000,
+                    timeout: Infinity
+                });
+            }
+
+            arkaPlandaKonumTakibiBaslat();
+
+            on(dom.byId("btnHesapla"), "click", function () {
+                var baslangic = selectBaslangic.value;
+                var bitis = selectBitis.value;
+
+                if(baslangic === bitis) {
+                    alert("Başlangıç ve bitiş ili aynı olamaz!");
+                    return;
+                }
+
+                map.graphics.clear();
+
+                var startCoords = ilKoordinatlari[baslangic];
+                var endCoords = ilKoordinatlari[bitis];
+
+                var url = "https://router.project-osrm.org/route/v1/driving/" + startCoords[0] + "," + startCoords[1] + ";" + endCoords[0] + "," + endCoords[1] + "?overview=full&geometries=geojson";
+
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.routes && data.routes.length > 0) {
+                            var rotaKoordinatlari = data.routes[0].geometry.coordinates;
+                            var polylineJson = { "paths": [ rotaKoordinatlari ], "spatialReference": { "wkid": 4326 } };
+                            var routeLine = new Polyline(polylineJson);
+                            var lineSymbol = new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID, new Color([13, 148, 136]), 6);
+                            
+                            map.graphics.add(new Graphic(routeLine, lineSymbol));
+                            map.setExtent(routeLine.getExtent().expand(1.4));
+
+                            var sqlFiltre = "KAYNAK_ADI IN ('" + baslangic + "', '" + bitis + "')";
+                            yolCalismaLayer.setLayerDefinitions({0: sqlFiltre, 2: sqlFiltre});
+                            yolKapaliLayer.setLayerDefinitions({1: sqlFiltre, 3: sqlFiltre});
+                            yolCalismaLayer.refresh();
+                            yolKapaliLayer.refresh();
+
+                            var panel = dom.byId("sonucPaneli");
+                            panel.style.display = "block";
+                            panel.innerHTML = "<b style='color:#38bdf8;'>🚗 Güzergah Analizi: " + baslangic + " ➔ " + bitis + "</b>";
+
+                            var startPoint = new Point(startCoords[0], startCoords[1], map.spatialReference);
+                            var endPoint = new Point(endCoords[0], endCoords[1], map.spatialReference);
+                            
+                            var midIndex = Math.floor(rotaKoordinatlari.length / 2);
+                            var midCoord = rotaKoordinatlari[midIndex];
+                            var midPoint = new Point(midCoord[0], midCoord[1], map.spatialReference);
+
+                            // ROTANIN KALKIŞ, ORTA VE VARIŞ NOKTALARINDA CANLI HAVA DURUMU/GÖRÜŞ MESAFESİ ÇAĞRILIR
+                            havaDurumuSorgulaVeGoster(startCoords[0], startCoords[1], startPoint, baslangic);
+                            havaDurumuSorgulaVeGoster(midCoord[0], midCoord[1], midPoint, "Rota Orta Noktası");
+                            havaDurumuSorgulaVeGoster(endCoords[0], endCoords[1], endPoint, bitis);
+
+                            var queryTask = new QueryTask("https://giscbs.kgm.gov.tr/server/rest/services/YolDurumu/YolDurumu/MapServer/0");
+                            var query = new Query();
+                            query.returnGeometry = false;
+                            query.outFields = ["*"];
+                            query.where = sqlFiltre;
+
+                            queryTask.execute(query, function(res) {
+                                if (res.features && res.features.length > 0) {
+                                    res.features.forEach(function(feat) {
+                                        var aciklama = feat.attributes.nedeni || feat.attributes.yolunadi || "Yol Çalışması";
+                                        panel.innerHTML += "<div class='uyari-item'><b>⚠️ Güzergah Yol Durumu:</b> " + aciklama + "</div>";
+                                    });
+                                } else {
+                                    panel.innerHTML += "<div class='uyari-item' style='border-left-color: #10b981; background: rgba(16, 185, 129, 0.1);'><b>✅ Yol Durumu:</b> Güzergah üzerinde bildirilen aktif bir yol engeli bulunmuyor.</div>";
+                                }
+                                panel.scrollTop = panel.scrollHeight;
+                            });
+                        }
+                    });
+            });
+        });
+    </script>
+</head>
+<body class="claro">
+
+    <!-- SEO BOTLARI İÇİN SEMANTİK GİZLİ METİN BLOĞU -->
+    <article class="sr-only" style="display:none;">
+        <h1>Türkiye Yol Bakım Onarım Çalışmaları ve Kapalı Yollar Haritası</h1>
+        <p>Karayolları Genel Müdürlüğü (KGM) canlı verileriyle Türkiye genelindeki yol bakım çalışmaları, kapalı yollar ve onarım sahalarını harita üzerinde anlık inceleyin.</p>
+    </article>
+
+    <!-- 🚧 TAM EKRAN HAREKETLİ YOL BAKIM & ÇALIŞMA LOGO KATMANI (3 SANİYE) -->
+    <div id="splash-screen">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="380" height="380" aria-label="Yol Bakım Logosu">
+          <defs>
+            <linearGradient id="bgGradMain" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#0F172A"/>
+              <stop offset="100%" stop-color="#1E293B"/>
+            </linearGradient>
+            
+            <linearGradient id="coneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#F97316"/>
+              <stop offset="100%" stop-color="#EA580C"/>
+            </linearGradient>
+
+            <linearGradient id="roadGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#334155"/>
+              <stop offset="100%" stop-color="#0F172A"/>
+            </linearGradient>
+
+            <filter id="glowWork" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="6" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            </filter>
+          </defs>
+
+          <!-- Arka Plan Kutu -->
+          <rect width="512" height="512" rx="110" fill="url(#bgGradMain)" />
+
+          <!-- Dönüşen Hareketli Dişli Çark (Bakım/Onarım Simgesi) -->
+          <g class="gear-spin" opacity="0.25">
+            <path d="M 256 120 L 268 140 L 290 132 L 296 156 L 318 156 L 318 180 L 338 188 L 330 210 L 346 226 L 330 242 L 338 264 L 318 272 L 318 296 L 296 296 L 290 320 L 268 312 L 256 332 L 244 312 L 222 320 L 216 296 L 194 296 L 194 272 L 174 264 L 182 242 L 166 226 L 182 210 L 174 188 L 194 180 L 194 156 L 216 156 L 222 132 L 244 140 Z" fill="#0D9488"/>
+            <circle cx="256" cy="200" r="45" fill="#0F172A"/>
+          </g>
+
+          <!-- Asfalt / Yol Görünümü -->
+          <g transform="translate(0, 30)">
+            <path d="M 120 360 L 392 360 L 330 240 L 182 240 Z" fill="url(#roadGrad)" stroke="#475569" stroke-width="4"/>
+            <!-- Kesikli Şerit Çizgisi -->
+            <line x1="256" y1="240" x2="256" y2="360" stroke="#F59E0B" stroke-width="6" class="stripe-animated"/>
+          </g>
+
+          <!-- Yanıp Sönen Hareketli Trafik Konisi -->
+          <g class="cone-bounce" filter="url(#glowWork)" transform="translate(0, -10)">
+            <!-- Taban -->
+            <ellipse cx="256" cy="245" rx="55" ry="14" fill="#0F172A" opacity="0.6"/>
+            <path d="M 206 240 L 306 240 L 296 250 L 216 250 Z" fill="#D97706"/>
+            <!-- Gövde -->
+            <path d="M 220 238 L 292 238 L 268 150 L 244 150 Z" fill="url(#coneGrad)"/>
+            <!-- Beyaz Reflektör Şeritler -->
+            <path d="M 230 215 L 282 215 L 277 200 L 235 200 Z" fill="#FFFFFF"/>
+            <path d="M 240 185 L 272 185 L 267 172 L 245 172 Z" fill="#FFFFFF"/>
+            <!-- Tepe Işık Dairesi -->
+            <circle cx="256" cy="148" r="8" fill="#F59E0B"/>
+          </g>
+
+          <!-- Alt Metin: Yol Bakım & Onarım -->
+          <g filter="url(#glowWork)">
+            <text x="256" y="420" 
+                  font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
+                  font-size="38" 
+                  font-weight="900" 
+                  text-anchor="middle" 
+                  letter-spacing="1">
+              <tspan fill="#0D9488">Yol Bakım</tspan> <tspan fill="#F97316">& Onarım</tspan>
+            </text>
+          </g>
+
+          <!-- Alt Çizgi -->
+          <rect x="176" y="445" width="160" height="4" rx="2" fill="url(#coneGrad)" opacity="0.8"/>
+        </svg>
+    </div>
+
+    <script>
+      setTimeout(function() {
+        var splash = document.getElementById('splash-screen');
+        if (splash) {
+          splash.style.opacity = '0';
+          splash.style.visibility = 'hidden';
+          setTimeout(function() { splash.remove(); }, 600);
+        }
+      }, 3000);
+    </script>
+
+    <div id="mapDiv"></div>
+
+    <div id="navBanner">
+        <div class="nav-pulse"></div>
+        <span id="navText">Arka Planda Konum Başlatılıyor...</span>
+    </div>
+
+    <div id="sidebar">
+        <h2>Güzergah & Yol Durumu</h2>
+        <hr style="border:0; border-top:1px solid #334155; margin-bottom:15px;">
+        
+        <div class="panel-group">
+            <label for="selectBaslangic">Başlangıç İli</label>
+            <select id="selectBaslangic"></select>
+        </div>
+        
+        <div class="panel-group">
+            <label for="selectBitis">Bitiş İli</label>
+            <select id="selectBitis"></select>
+        </div>
+
+        <div class="layer-options">
+            <label style="font-weight:600; margin-bottom:10px; color:#f8fafc;">Yol Durum Katmanları</label>
+            <label><input type="checkbox" id="chkCalismaYollari" checked> Çalışma Yapılan Yollar</label>
+            <label><input type="checkbox" id="chkKapaliYollar" checked> Kapalı Yollar</label>
+        </div>
+        
+        <button id="btnHesapla" class="btn-analiz">Rotayı Oluştur</button>
+
+        <div id="sonucPaneli"></div>
+    </div>
+</body>
+</html>

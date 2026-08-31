@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="380" height="380" aria-label="Yol Bakım Logosu">
+  <defs>
+    <linearGradient id="bgGradMain" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#1E293B"/>
+    </linearGradient>
+    
+    <linearGradient id="coneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F97316"/>
+      <stop offset="100%" stop-color="#EA580C"/>
+    </linearGradient>
+
+    <linearGradient id="roadGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+
+    <filter id="glowWork" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <style>
+    @keyframes gearRotate {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    @keyframes conePulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes stripeMove {
+        0% { stroke-dashoffset: 0; }
+        100% { stroke-dashoffset: 40; }
+    }
+    .gear-spin { animation: gearRotate 6s infinite linear; transform-origin: 256px 200px; }
+    .cone-bounce { animation: conePulse 1.5s infinite ease-in-out; transform-origin: 256px 220px; }
+    .stripe-animated { stroke-dasharray: 20 20; animation: stripeMove 1.5s infinite linear; }
+  </style>
+
+  <!-- Arka Plan Kutu -->
+  <rect width="512" height="512" rx="110" fill="url(#bgGradMain)" />
+
+  <!-- Dönüşen Hareketli Dişli Çark (Bakım/Onarım Simgesi) -->
+  <g class="gear-spin" opacity="0.25">
+    <path d="M 256 120 L 268 140 L 290 132 L 296 156 L 318 156 L 318 180 L 338 188 L 330 210 L 346 226 L 330 242 L 338 264 L 318 272 L 318 296 L 296 296 L 290 320 L 268 312 L 256 332 L 244 312 L 222 320 L 216 296 L 194 296 L 194 272 L 174 264 L 182 242 L 166 226 L 182 210 L 174 188 L 194 180 L 194 156 L 216 156 L 222 132 L 244 140 Z" fill="#0D9488"/>
+    <circle cx="256" cy="200" r="45" fill="#0F172A"/>
+  </g>
+
+  <!-- Asfalt / Yol Görünümü -->
+  <g transform="translate(0, 30)">
+    <path d="M 120 360 L 392 360 L 330 240 L 182 240 Z" fill="url(#roadGrad)" stroke="#475569" stroke-width="4"/>
+    <!-- Kesikli Şerit Çizgisi -->
+    <line x1="256" y1="240" x2="256" y2="360" stroke="#F59E0B" stroke-width="6" class="stripe-animated"/>
+  </g>
+
+  <!-- Yanıp Sönen Hareketli Trafik Konisi -->
+  <g class="cone-bounce" filter="url(#glowWork)" transform="translate(0, -10)">
+    <!-- Taban -->
+    <ellipse cx="256" cy="245" rx="55" ry="14" fill="#0F172A" opacity="0.6"/>
+    <path d="M 206 240 L 306 240 L 296 250 L 216 250 Z" fill="#D97706"/>
+    <!-- Gövde -->
+    <path d="M 220 238 L 292 238 L 268 150 L 244 150 Z" fill="url(#coneGrad)"/>
+    <!-- Beyaz Reflektör Şeritler -->
+    <path d="M 230 215 L 282 215 L 277 200 L 235 200 Z" fill="#FFFFFF"/>
+    <path d="M 240 185 L 272 185 L 267 172 L 245 172 Z" fill="#FFFFFF"/>
+    <!-- Tepe Işık Dairesi -->
+    <circle cx="256" cy="148" r="8" fill="#F59E0B"/>
+  </g>
+
+  <!-- Alt Metin: Yol Bakım & Onarım -->
+  <g filter="url(#glowWork)">
+    <text x="256" y="420" 
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
+          font-size="38" 
+          font-weight="900" 
+          text-anchor="middle" 
+          letter-spacing="1">
+      <tspan fill="#0D9488">Yol Bakım</tspan> <tspan fill="#F97316">&amp; Onarım</tspan>
+    </text>
+  </g>
+
+  <!-- Alt Çizgi -->
+  <rect x="176" y="445" width="160" height="4" rx="2" fill="url(#coneGrad)" opacity="0.8"/>
+</svg>

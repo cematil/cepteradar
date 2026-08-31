@@ -1,0 +1,15 @@
+{
+  "name": "Rota Denetim & Radar Sistemi",
+  "short_name": "RotaRadar",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0b0f17",
+  "theme_color": "#121824",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/854/854878.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

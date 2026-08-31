@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="380" height="380">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#1E293B"/>
+    </linearGradient>
+    <linearGradient id="radarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF4D4D"/>
+      <stop offset="100%" stop-color="#F97316"/>
+    </linearGradient>
+    <linearGradient id="phoneGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#60A5FA"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <style>
+    @keyframes radarWave {
+        0% { transform: scale(0.8); opacity: 0.9; }
+        50% { opacity: 0.5; }
+        100% { transform: scale(1.35); opacity: 0; }
+    }
+    @keyframes pulseBip {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.15); opacity: 0.6; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    .wave1 { animation: radarWave 2.5s infinite linear; transform-origin: 256px 200px; }
+    .wave2 { animation: radarWave 2.5s infinite linear; animation-delay: 0.8s; transform-origin: 256px 200px; }
+    .wave3 { animation: radarWave 2.5s infinite linear; animation-delay: 1.6s; transform-origin: 256px 200px; }
+    .radar-pin { animation: pulseBip 1.2s infinite ease-in-out; transform-origin: 256px 200px; }
+  </style>
+
+  <rect width="512" height="512" rx="110" fill="url(#bgGrad)" />
+
+  <g filter="url(#glow)">
+    <circle class="wave1" cx="256" cy="200" r="110" fill="none" stroke="url(#radarGrad)" stroke-width="6"/>
+    <circle class="wave2" cx="256" cy="200" r="110" fill="none" stroke="url(#radarGrad)" stroke-width="6"/>
+    <circle class="wave3" cx="256" cy="200" r="110" fill="none" stroke="url(#radarGrad)" stroke-width="6"/>
+  </g>
+
+  <g transform="translate(0, -20)">
+    <rect x="196" y="110" width="120" height="200" rx="24" fill="url(#phoneGrad)" stroke="#3B82F6" stroke-width="5" filter="url(#glow)"/>
+    <rect x="204" y="126" width="104" height="168" rx="16" fill="#0F172A" />
+    <rect x="240" y="118" width="32" height="4" rx="2" fill="#3B82F6" opacity="0.8"/>
+  </g>
+
+  <g class="radar-pin" transform="translate(0, -20)" filter="url(#glow)">
+    <circle cx="256" cy="200" r="26" fill="#EF4444" opacity="0.3"/>
+    <circle cx="256" cy="200" r="18" fill="#EF4444" stroke="#FFFFFF" stroke-width="3"/>
+    <circle cx="256" cy="200" r="6" fill="#FFFFFF"/>
+    <path d="M 256 200 L 270 180" stroke="#F59E0B" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <g filter="url(#glow)">
+    <text x="256" y="420" 
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
+          font-size="46" 
+          font-weight="900" 
+          text-anchor="middle" 
+          letter-spacing="1">
+      <tspan fill="url(#textGrad)">Cepte</tspan><tspan fill="#FF4D4D">Radar</tspan>
+    </text>
+  </g>
+
+  <rect x="181" y="445" width="150" height="4" rx="2" fill="url(#radarGrad)" opacity="0.8"/>
+</svg>

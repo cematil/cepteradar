@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- 🚀 SEO TEMEL META ETİKETLERİ -->
+    <title>Cepte Radar - Canlı Radar, Hız Koridoru ve Trafik Kontrol Noktaları Sorgulama</title>
+    <meta name="description" content="Türkiye geneli canlı radar noktaları, hız koridorları, trafik denetim alanları ve Karayolları kapalı yol durumlarını anlık sorgulayın. Sürüş risk skorunuzu öğrenin.">
+    <meta name="keywords" content="cepte radar, radar sorgulama, hız koridoru, trafik denetim noktaları, canlı radar haritası, kgm yol durumu, karayolları kapalı yollar, trafik cezası radar">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+    <meta name="author" content="Cepte Radar">
+    <link rel="canonical" href="https://cepteradar.com/index.html">
+
+    <!-- 🌐 OPEN GRAPH (FACEBOOK, WHATSAPP, LINKEDIN PAYLAŞIM META ETİKETLERİ) -->
+    <meta property="og:locale" content="tr_TR">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Cepte Radar - Canlı Trafik & Radar Sorgulama Sistemi">
+    <meta property="og:description" content="Güzergahınız üzerindeki hız koridorları, mobil radarlar, kontrol noktaları ve yol çalışmalarını anlık görün, sesli uyarı alın.">
+    <meta property="og:url" content="https://cepteradar.com/index.html">
+    <meta property="og:site_name" content="Cepte Radar">
+    <meta property="og:image" content="https://cepteradar.com/assets/og-cover.jpg">
+
+    <!-- 🐦 TWITTER CARD META ETİKETLERİ -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Cepte Radar - Canlı Trafik & Radar Takibi">
+    <meta name="twitter:description" content="Güzergahınızdaki tüm radar ve kontrol noktalarını haritada inceleyin.">
+    <meta name="twitter:image" content="https://cepteradar.com/assets/og-cover.jpg">
+
+    <!-- 🏢 JSON-LD YAPISAL VERİ (SCHEMA.ORG - GOOGLE BOT ARAMA MOTORU ENTEGRASYONU) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Cepte Radar",
+      "url": "https://cepteradar.com/",
+      "description": "Türkiye geneli canlı radar noktaları, hız koridorları ve trafik denetim haritası sorgulama servisi.",
+      "applicationCategory": "NavigationApplication",
+      "operatingSystem": "All",
+      "inLanguage": "tr-TR",
+      "author": {
+        "@type": "Organization",
+        "name": "Cepte Radar"
+      }
+    }
+    </script>
+
+    <link rel="manifest" href="manifest.json">
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js');
+      }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- SAĞ TIKLAMA VE KOPYALAMA ENGELLEYİCİ GÜVENLİK KATMANI -->
+    <script>
+      (function() {
+        'use strict';
+
+        document.addEventListener('contextmenu', function(e) {
+          e.preventDefault();
+          return false;
+        });
+
+        document.addEventListener('selectstart', function(e) { e.preventDefault(); });
+        document.addEventListener('dragstart', function(e) { e.preventDefault(); });
+
+        document.addEventListener('keydown', function(e) {
+          if (
+            e.keyCode === 123 || 
+            (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) || 
+            (e.ctrlKey && (e.keyCode === 85 || e.keyCode === 83))
+          ) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }
+        });
+      })();
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- ESRI LEAFLET KATMAN DESTEĞİ -->
+    <script src="https://unpkg.com/esri-leaflet@3.0.10/dist/esri-leaflet.js"></script>
+
+    <style>
+        /* 🟢 RADAR DALGALARI VE SPLASH EKRANI ANİMASYONLARI (logo.html) */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #0B1120;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999999;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        @keyframes radarWave {
+            0% { transform: scale(0.8); opacity: 0.9; }
+            50% { opacity: 0.5; }
+            100% { transform: scale(1.35); opacity: 0; }
+        }
+
+        @keyframes pulseBip {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.15); opacity: 0.6; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .wave1 {
+            animation: radarWave 2.5s infinite linear;
+            transform-origin: 256px 200px;
+        }
+        .wave2 {
+            animation: radarWave 2.5s infinite linear;
+            animation-delay: 0.8s;
+            transform-origin: 256px 200px;
+        }
+        .wave3 {
+            animation: radarWave 2.5s infinite linear;
+            animation-delay: 1.6s;
+            transform-origin: 256px 200px;
+        }
+        .radar-pin {
+            animation: pulseBip 1.2s infinite ease-in-out;
+            transform-origin: 256px 200px;
+        }
+
+        * {
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            user-select: none !important;
+            -webkit-touch-callout: none !important;
+        }
+
+        #map-container {
+            height: 580px;
+            width: 100%;
+            position: relative;
+            background-color: #0b0f17;
+            transition: all 0.3s ease;
+        }
+
+        #map-container.fullscreen-map {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 99999 !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            background: #0b0f17 !important;
+        }
+
+        .bg-dark-card { background-color: #121824; }
+        .bg-dark-bg { background-color: #0b0f17; }
+
+        .map-legend {
+            background: rgba(18, 24, 36, 0.95);
+            border: 1px solid #374151;
+            padding: 10px 14px;
+            border-radius: 8px;
+            color: #e5e7eb;
+            font-size: 11px;
+            line-height: 22px;
+        }
+
+        .speed-limit-sign {
+            width: 28px;
+            height: 28px;
+            background-color: #ffffff;
+            border: 3px solid #dc2626;
+            border-radius: 50%;
+            color: #000000;
+            font-weight: 900;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 10px rgba(220, 38, 38, 0.8);
+        }
+
+        .modern-radar-marker {
+            width: 14px;
+            height: 14px;
+            background-color: #ef4444;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 12px #ef4444, 0 0 20px #ef4444;
+            animation: pulse-radar 1.5s infinite;
+        }
+
+        .modern-control-marker {
+            width: 12px;
+            height: 12px;
+            background-color: #06b6d4;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #06b6d4;
+            animation: pulse-control 1.5s infinite;
+        }
+
+        .gps-car-marker {
+            width: 22px;
+            height: 22px;
+            background-color: #10b981;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 18px #10b981;
+            animation: pulse-gps 1.2s infinite;
+        }
+
+        @keyframes pulse-gps {
+            0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.9); }
+            70% { transform: scale(1.2); box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        @keyframes pulse-radar {
+            0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8); }
+            70% { transform: scale(1.15); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        @keyframes pulse-control {
+            0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.8); }
+            70% { transform: scale(1.15); box-shadow: 0 0 0 10px rgba(6, 182, 212, 0); }
+            100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); }
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 2px; }
+    </style>
+</head>
+<body class="bg-dark-bg text-gray-200 font-sans antialiased min-h-screen">
+
+    <!-- SEO BOTLARI İÇİN SEMANTİK GİZLİ METİN BLOĞU -->
+    <article class="sr-only">
+        <h2>Cepte Radar - Canlı Trafik ve Yol Durumu Rehberi</h2>
+        <p>Cepte Radar uygulaması ile Karayolları Genel Müdürlüğü (KGM) verilerine dayalı canlı hız koridorlarını, trafik denetim alanlarını, mobil radar noktalarını ve kapalı yolları görüntüleyebilirsiniz.</p>
+    </article>
+
+    <!-- 🟢 4 SANİYE OTOMATİK KAPAPAN SPLASH YÜKLEME EKRANI (logo.html) -->
+    <div id="splash-screen">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="380" height="380">
+          <defs>
+            <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#0F172A"/>
+              <stop offset="100%" stop-color="#1E293B"/>
+            </linearGradient>
+            <linearGradient id="radarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FF4D4D"/>
+              <stop offset="100%" stop-color="#F97316"/>
+            </linearGradient>
+            <linearGradient id="phoneGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#1E293B"/>
+              <stop offset="100%" stop-color="#0F172A"/>
+            </linearGradient>
+            <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#3B82F6"/>
+              <stop offset="100%" stop-color="#60A5FA"/>
+            </linearGradient>
+            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="6" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            </filter>
+          </defs>
+
+          <rect width="512" height="512" rx="110" fill="url(#bgGrad)" />
+
+          <g filter="url(#glow)">
+            <circle class="wave1" cx="256" cy="200" r="110" fill="none" stroke="url(#radarGrad)" stroke-width="6"/>
+            <circle class="wave2" cx="256" cy="200" r="110" fill="none" stroke="url(#radarGrad)" stroke-width="6"/>
+            <circle class="wave3" cx="256" cy="200" r="110" fill="none" stroke="url(#radarGrad)" stroke-width="6"/>
+          </g>
+
+          <g transform="translate(0, -20)">
+            <rect x="196" y="110" width="120" height="200" rx="24" fill="url(#phoneGrad)" stroke="#3B82F6" stroke-width="5" filter="url(#glow)"/>
+            <rect x="204" y="126" width="104" height="168" rx="16" fill="#0F172A" />
+            <rect x="240" y="118" width="32" height="4" rx="2" fill="#3B82F6" opacity="0.8"/>
+          </g>
+
+          <g class="radar-pin" transform="translate(0, -20)" filter="url(#glow)">
+            <circle cx="256" cy="200" r="26" fill="#EF4444" opacity="0.3"/>
+            <circle cx="256" cy="200" r="18" fill="#EF4444" stroke="#FFFFFF" stroke-width="3"/>
+            <circle cx="256" cy="200" r="6" fill="#FFFFFF"/>
+            <path d="M 256 200 L 270 180" stroke="#F59E0B" stroke-width="3" stroke-linecap="round"/>
+          </g>
+
+          <g filter="url(#glow)">
+            <text x="256" y="420" 
+                  font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
+                  font-size="46" 
+                  font-weight="900" 
+                  text-anchor="middle" 
+                  letter-spacing="1">
+              <tspan fill="url(#textGrad)">Cepte</tspan><tspan fill="#FF4D4D">Radar</tspan>
+            </text>
+          </g>
+
+          <rect x="181" y="445" width="150" height="4" rx="2" fill="url(#radarGrad)" opacity="0.8"/>
+        </svg>
+    </div>
+
+    <script>
+      setTimeout(function() {
+        var splash = document.getElementById('splash-screen');
+        if (splash) {
+          splash.style.opacity = '0';
+          splash.style.visibility = 'hidden';
+          setTimeout(function() { splash.remove(); }, 500);
+        }
+      }, 4000);
+    </script>
+
+    <header class="border-b border-gray-800 bg-dark-card px-4 md:px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <h1 class="text-lg md:text-xl font-bold text-white flex items-center gap-2.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="32" height="32" class="inline-block" aria-label="Cepte Radar Logosu">
+                  <defs>
+                    <linearGradient id="hdrBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#0F172A"/>
+                      <stop offset="100%" stop-color="#1E293B"/>
+                    </linearGradient>
+                    <linearGradient id="hdrRadar" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#FF4D4D"/>
+                      <stop offset="100%" stop-color="#F97316"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="512" height="512" rx="110" fill="url(#hdrBg)" />
+                  <circle cx="256" cy="200" r="110" fill="none" stroke="url(#hdrRadar)" stroke-width="12"/>
+                  <rect x="196" y="110" width="120" height="200" rx="24" fill="#1E293B" stroke="#3B82F6" stroke-width="8"/>
+                  <circle cx="256" cy="200" r="22" fill="#EF4444" stroke="#FFFFFF" stroke-width="4"/>
+                  <path d="M 256 200 L 270 180" stroke="#F59E0B" stroke-width="5" stroke-linecap="round"/>
+                </svg>
+                <span>Cepte Radar</span>
+            </h1>
+            <div class="flex items-center">
+                <button onclick="toggleLegalModal()" class="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-lg transition duration-200 shadow-sm">
+                    ⚖️ Yasal Uyarı & Sorumluluk Reddi
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <section class="lg:col-span-5 flex flex-col gap-6">
+            <div class="bg-dark-card p-5 rounded-xl border border-gray-800 shadow-lg">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="start-city" class="block text-xs text-gray-400 uppercase font-semibold mb-1">📍 Nereden</label>
+                        <select id="start-city" onchange="syncSelectDisables()" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-red-500">
+                        </select>
+                    </div>
+                    <div>
+                        <label for="end-city" class="block text-xs text-gray-400 uppercase font-semibold mb-1">🎯 Nereye</label>
+                        <select id="end-city" onchange="syncSelectDisables()" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-red-500">
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <button id="btn-submit" onclick="calculateRoute()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-4 rounded-lg transition duration-200 shadow-md tracking-wide">
+                        ROTA OLUŞTUR
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-dark-card p-4 rounded-xl border border-gray-800 flex items-center justify-between">
+                <div>
+                    <span class="text-xs text-amber-400 uppercase font-bold tracking-wider flex items-center gap-1 mb-1">
+                        ⚠️ GÜZERGAH RİSK SKORU
+                    </span>
+                    <span class="text-sm font-semibold text-emerald-400 block" id="gps-status-text">Konum Tespiti Bekleniyor...</span>
+                    <span class="text-[10px] text-gray-400 mt-0.5 block" id="risk-level-desc">Yoldaki Radar & Denetim Yoğunluğu</span>
+                </div>
+                <div class="text-right">
+                    <span class="text-3xl font-black text-red-500 block leading-none" id="risk-score">%0</span>
+                    <span class="text-[10px] font-bold text-red-400 uppercase tracking-tight" id="risk-badge">ANALİZ EDİLİYOR</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+                <div class="bg-dark-card p-4 rounded-xl border border-gray-800 text-center">
+                    <span class="text-2xl font-black text-red-500 block" id="stat-radar">0</span>
+                    <span class="text-xs text-gray-400 uppercase font-medium">RADAR</span>
+                </div>
+                <div class="bg-dark-card p-4 rounded-xl border border-gray-800 text-center">
+                    <span class="text-2xl font-black text-cyan-400 block" id="stat-kontrol">0</span>
+                    <span class="text-xs text-gray-400 uppercase font-medium">KONTROL N.</span>
+                </div>
+                <div class="bg-dark-card p-4 rounded-xl border border-gray-800 text-center">
+                    <span class="text-2xl font-black text-yellow-500 block" id="stat-koridor">0</span>
+                    <span class="text-xs text-gray-400 uppercase font-medium">HIZ KOR.</span>
+                </div>
+            </div>
+
+            <div class="bg-dark-card p-5 rounded-xl border border-gray-800 space-y-4">
+                <!-- 🌤️ CANLI METEOROLOJİ DURUMU VE GÖRÜŞ MESAFESİ -->
+                <div class="space-y-2">
+                    <h3 class="text-xs text-gray-400 uppercase font-bold tracking-wider">🌤️ CANLI METEOROLOJİ DURUMU</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-gray-900/80 p-2.5 rounded border border-gray-800">
+                            <div class="text-[10px] text-gray-400 font-bold uppercase" id="weather-start-title">KALKIŞ ŞEHRİ</div>
+                            <div class="text-sm font-bold text-white flex items-center gap-1 mt-0.5" id="weather-start-temp">--°C</div>
+                            <div class="text-[11px] text-amber-400 font-semibold truncate" id="weather-start-cond">--</div>
+                        </div>
+
+                        <div class="bg-gray-900/80 p-2.5 rounded border border-gray-800">
+                            <div class="text-[10px] text-gray-400 font-bold uppercase" id="weather-end-title">VARIŞ ŞEHRİ</div>
+                            <div class="text-sm font-bold text-white flex items-center gap-1 mt-0.5" id="weather-end-temp">--°C</div>
+                            <div class="text-[11px] text-amber-400 font-semibold truncate" id="weather-end-cond">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-2">⚡ Hız Koridoru Detayları & Limitler</h3>
+                    <ul class="text-xs space-y-2 text-gray-300 max-h-40 overflow-y-auto pr-1" id="speed-corridors">
+                        <li class="text-gray-500 italic text-xs">Rota seçilmedi.</li>
+                    </ul>
+                </div>
+
+                <hr class="border-gray-800">
+
+                <div>
+                    <h3 class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-3">⚙️ Geçilen İller — Denetim Dağılımı</h3>
+                    <div class="space-y-3" id="city-breakdown"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="lg:col-span-7 flex flex-col gap-4">
+            <div class="bg-dark-card p-2 rounded-xl border border-gray-800 flex flex-col" id="map-container">
+                <div id="map" class="rounded-lg"></div>
+            </div>
+
+            <div class="bg-dark-card border border-amber-500/30 p-4 rounded-xl shadow-lg flex flex-col gap-3">
+                <a href="main.html" class="flex items-center justify-between group">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xl text-amber-400 group-hover:scale-110 transition duration-200 shadow-inner">
+                            🚧
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-white group-hover:text-amber-400 transition duration-200 flex items-center gap-2">
+                                Yol Çalışmaları & Kapalı Yollar Haritası
+                            </h4>
+                            <p class="text-xs text-gray-400 mt-0.5">Güzergahınız üzerindeki güncel karayolu bakım, onarım ve kapalı yol durumlarını canlı inceleyin.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-amber-400 font-bold text-xs px-3 py-1.5 bg-amber-500/10 rounded-lg border border-amber-500/30 group-hover:bg-amber-500 group-hover:text-gray-950 transition duration-200">
+                            Detaylı İncele →
+                        </span>
+                    </div>
+                </a>
+
+                <hr class="border-gray-800/80 my-0.5">
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-[11px] text-gray-300">
+                    <div class="flex items-start gap-2 bg-gray-900/60 p-2 rounded-lg border border-gray-800">
+                        <span class="text-amber-400 text-sm">🖥️</span>
+                        <div>
+                            <strong class="text-white block font-semibold">Tam Ekran Yapma:</strong>
+                            Haritanın sağ üstündeki butonla haritayı büyültebilir, <code class="bg-gray-800 px-1 rounded text-amber-300">ESC</code> ile çıkabilirsiniz.
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-2 bg-gray-900/60 p-2 rounded-lg border border-gray-800">
+                        <span class="text-amber-400 text-sm">👁️</span>
+                        <div>
+                            <strong class="text-white block font-semibold">Yol Çalışmalarını Kapatma:</strong>
+                            Sağ üstteki katman menüsünden <em class="text-amber-300">"KGM Yol Çalışmaları"</em> kutucuğunun işaretini kaldırabilirsiniz.
+                        </div>
+                    </div>
+
+                    <a href="main.html" class="flex items-start gap-2 bg-gray-900/60 hover:bg-amber-500/10 p-2 rounded-lg border border-gray-800 hover:border-amber-500/50 transition duration-200 group">
+                        <span class="text-blue-400 group-hover:text-amber-400 text-sm">ℹ️</span>
+                        <div>
+                            <strong class="text-white group-hover:text-amber-400 block font-semibold flex items-center gap-1 transition">
+                                Detaylı Bilgi Alma <span class="text-[10px] text-amber-400 font-normal">→</span>
+                            </strong>
+                            Haritada turuncu simgelerle gösterilen yol çalışmalarına tıklayarak kapama nedenini inceleyebilirsiniz.
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="legal-modal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
+        <div class="bg-dark-card border border-gray-800 w-full max-w-4xl rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            
+            <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+                <h2 class="text-base font-bold text-white flex items-center gap-2">
+                    <span class="text-amber-500">⚖️</span> GENİŞLETİLMİŞ YASAL SÖZLEŞME, MUAFIYET VE KULLANIM ŞARTLARI
+                </h2>
+                <button onclick="toggleLegalModal()" class="text-gray-400 hover:text-white text-xl font-bold px-2 py-0.5">✕</button>
+            </div>
+
+            <div class="overflow-y-auto space-y-4 text-xs text-gray-300 pr-3 leading-relaxed flex-1">
+                <div class="bg-red-950/40 border border-red-800/60 p-3.5 rounded-lg text-red-200 font-semibold">
+                    ⚠️ YASAL BİLDİRİM VE ZORUNLU KABUL: Bu web uygulamasını, servislerini ve içeriğini kullanarak; aşağıda açıklanan tüm şartları, muafiyet hükümlerini, yasal sorumsuzluk kayıtlarını ve risk beyanlarını hiçbir kısıtlama, itiraz veya şart olmaksızın kabul etmiş sayılırsınız. Şartları kabul etmiyorsanız lütfen uygulamayı derhal kapatınız.
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-bold text-white mb-1">1. Bilgilendirme Amacı ve Trafik Güvenliği Vurgusu</h3>
+                    <p>Bu platform, sadece karayollarındaki hız limitleri, radar sistemleri, kontrol noktaları ve meteorolojik durumlar hakkında genel sürücü farkındalığını artırmak amacıyla geliştirilmiş istatistiki ve görsel bir rehberdir. Uygulama hiçbir şekilde sürücüleri hız yapmaya, kuralları ihlal etmeye veya güvenlik denetimlerinden kaçmaya teşvik etmez. Sürücü, 2918 sayılı Karayolları Trafik Kanunu ve ilgili tüm idari düzenlemelere uymakla yükümlüdür.</p>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-bold text-white mb-1">2. Veri Garanti Edilemezliği ve Bilgi Doğruluğu Reddi</h3>
+                    <p>Haritada ve panel üzerinde gösterilen radar lokasyonları, denetim noktaları, hava durumu verileri ve güzergah risk skorları kamuya açık kaynaklardan, üçüncü taraf veritabanlarından veya tahmini algoritmalardan elde edilmektedir. Verilerin anlık doğruluğu, güncelliği veya eksiksizliği <strong>garanti edilmez</strong>. Emniyet ve jandarma birimlerinin gezici denetimleri veya anlık radar konum değişiklikleri sistemde yer almayabilir.</p>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-bold text-white mb-1">3. İdari, Trafik Cezaları ve Cezai İşlemlerden Tam Sorumsuzluk</h3>
+                    <p>Sürücünün uygulama üzerindeki bilgilere dayanarak hareket etmesi neticesinde karşılaşabileceği hiçbir idari para cezası, ehliyete el konulması, araç bağlanması veya sair yasal müeyyideden platform yöneticileri, yazılımcıları, sahipleri veya hizmet sağlayıcıları <strong>hiçbir koşulda hukuki veya mali olarak sorumlu tutulamaz</strong>. Tüm cezai sorumluluk münhasıran araç sürücüsüne aittir.</p>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-bold text-white mb-1">4. Trafik Kazaları, Maddi ve Manevi Zararların Reddi</h3>
+                    <p>Canlı GPS konum takibi veya sesli uyarı özellikleri sürüş esnasında sürücünün dikkatini dağıtmamalıdır. Uygulamanın kullanımı sırasında oluşabilecek trafik kazaları, yaralanmalar, can kayıpları, araç hasarları veya üçüncü şahıslara verilen maddi/manevi zararlardan uygulama yetkilileri tamamen muaf tutulmuştur.</p>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-bold text-white mb-1">5. Kesintisizlik ve Teknik Hizmet Garanti Edilmemesi</h3>
+                    <p>Hizmetin kesintisiz, hatasız veya güvenli bir şekilde çalışacağı garanti edilmez. İnternet bağlantı kopuklukları, GPS sinyal kayıpları, sunucu arızaları veya API servis güncellemelerinden kaynaklı aksaklıklardan doğacak olumsuzluklar kabul edilmemektedir.</p>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-bold text-white mb-1">6. Uygulama İçi Fikri Mülkiyet ve Kullanım Hakları</h3>
+                    <p>Bu uygulamanın kod yapısı, tasarımı, arayüzü ve koruma sistemleri telif haklarına tabidir. Uygulama içeriğinin kopyalanması, tersine mühendislik (reverse engineering) işlemlerine tabi tutulması veya ticari amaçla izinsiz kullanılması yasaktır.</p>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-800 pt-3 flex items-center justify-between">
+                <span class="text-[10px] text-gray-500">Tüm Hakları Saklıdır © 2026</span>
+                <button onclick="toggleLegalModal()" class="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-6 py-2.5 rounded-lg transition duration-200 shadow-lg">
+                    Tüm Şartları Okudum, Anladım ve Kabul Ediyorum
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const realStreetTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' });
+        const realDarkTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: '© Esri Real World Map' });
+
+        const map = L.map('map', { center: [39.0, 35.0], zoom: 6, layers: [realStreetTile] });
+
+        const kgmYolDurumuLayer = L.esri.dynamicMapLayer({
+            url: 'https://giscbs.kgm.gov.tr/server/rest/services/YolDurumu/YolDurumu/MapServer',
+            opacity: 0.9,
+            layers: [0, 1, 2, 3]
+        }).addTo(map);
+
+        map.on('click', function (e) {
+            const size = map.getSize();
+
+            kgmYolDurumuLayer.identify()
+                .at(e.latlng)
+                .size([size.x, size.y])
+                .bounds(map.getBounds())
+                .tolerance(15)
+                .run(function (error, featureCollection) {
+                    if (error || !featureCollection || !featureCollection.features || featureCollection.features.length === 0) {
+                        return;
+                    }
+
+                    const props = featureCollection.features[0].properties;
+                    const aciklama = props.nedeni || props.YOL_DURUMU || props.ACIKLAMA || props.yolunadi || "Aktif Yol Çalışması / Kapanma";
+                    const yolAdi = props.yolunadi || props.YOL_ADI || "Karayolu Hattı";
+                    const bolge = props.KAYNAK_ADI || props.BOLGE || "Genel Bölge";
+
+                    const popupContent = `
+                        <div style="font-size:12px; color:#1e293b; padding:4px; font-family:sans-serif;">
+                            <h4 style="font-weight:bold; color:#dc2626; border-bottom:1px solid #cbd5e1; margin-bottom:6px; padding-bottom:3px;">🚧 KGM Yol Durumu Bilgisi</h4>
+                            <div style="margin-bottom:3px;"><b>Açıklama / Neden:</b> ${aciklama}</div>
+                            <div style="margin-bottom:3px;"><b>Güzergah:</b> ${yolAdi}</div>
+                            <div><b>İl / Bölge:</b> ${bolge}</div>
+                        </div>
+                    `;
+
+                    L.popup()
+                        .setLatLng(e.latlng)
+                        .setContent(popupContent)
+                        .openOn(map);
+                });
+        });
+
+        L.control.layers({ 
+            "🗺️ Gerçek Karayolu Haritası": realStreetTile, 
+            "🌙 Koyu Tema Harita": realDarkTile 
+        }, {
+            "🚧 KGM Yol Çalışmaları & Kapalı Yollar": kgmYolDurumuLayer
+        }, { position: 'topright' }).addTo(map);
+
+        const FullscreenControl = L.Control.extend({
+            options: { position: 'topright' },
+            onAdd: function () {
+                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                const button = L.DomUtil.create('a', '', container);
+                button.href = '#';
+                button.title = 'Tam Sayfa Harita';
+                button.innerHTML = '🖥️';
+                button.style.fontSize = '16px';
+                button.style.lineHeight = '30px';
+                button.style.textAlign = 'center';
+                button.style.width = '30px';
+                button.style.height = '30px';
+                button.style.display = 'block';
+                button.style.backgroundColor = '#121824';
+                button.style.color = '#fff';
+
+                L.DomEvent.on(button, 'click', function (e) {
+                    L.DomEvent.stopPropagation(e);
+                    L.DomEvent.preventDefault(e);
+                    toggleMapFullscreen();
+                });
+
+                return container;
+            }
+        });
+        map.addControl(new FullscreenControl());
+
+        function toggleMapFullscreen() {
+            const container = document.getElementById('map-container');
+            container.classList.toggle('fullscreen-map');
+            setTimeout(() => { map.invalidateSize(); }, 300);
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === "Escape") {
+                const container = document.getElementById('map-container');
+                if (container.classList.contains('fullscreen-map')) {
+                    container.classList.remove('fullscreen-map');
+                    setTimeout(() => { map.invalidateSize(); }, 300);
+                }
+            }
+        });
+
+        const legend = L.control({ position: 'bottomright' });
+        legend.onAdd = function () {
+            const div = L.DomUtil.create('div', 'map-legend');
+            div.innerHTML = `
+                <div class="flex items-center gap-2 mb-1"><span class="w-4 h-1 bg-blue-600 inline-block rounded"></span> <b>Gerçek Karayolu Rotası</b></div>
+                <div class="flex items-center gap-2 mb-1"><span class="w-4 h-1 border-b-2 border-dashed border-red-500 inline-block"></span> <b>Hız Koridoru</b></div>
+                <div class="flex items-center gap-2 mb-1"><span class="w-3 h-3 bg-amber-500 rounded inline-block shadow-[0_0_8px_#f59e0b]"></span> <b>Yol Çalışması / Kapanma</b></div>
+                <div class="flex items-center gap-2 mb-1"><span class="w-3 h-3 bg-red-500 rounded-full inline-block shadow-[0_0_8px_#ef4444]"></span> <b>Yol Üstü Radar</b></div>
+                <div class="flex items-center gap-2 mb-1"><span class="w-3 h-3 bg-cyan-400 rounded-full inline-block shadow-[0_0_8px_#06b6d4]"></span> <b>Yol Üstü Kontrol</b></div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 border-2 border-red-600 bg-white text-black font-bold text-[9px] rounded-full inline-flex items-center justify-center">82</span> <b>Hız Limiti Tabelası</b></div>
+            `;
+            return div;
+        };
+        legend.addTo(map);
+
+        let activeMapElements = [];
+        let gpsWatchId = null;
+        let gpsMarker = null;
+        let activePointsToWarn = [];
+        let warnedPoints = new Set();
+        let warnedRoadWork = false;
+
+        function toggleLegalModal() {
+            document.getElementById('legal-modal').classList.toggle('hidden');
+        }
+
+        function clearMap() {
+            activeMapElements.forEach(item => map.removeLayer(item));
+            activeMapElements = [];
+            activePointsToWarn = [];
+            warnedPoints.clear();
+            warnedRoadWork = false;
+            stopGpsNavigation();
+        }
+
+        function fixMapSize() { setTimeout(() => { map.invalidateSize(); }, 200); }
+        window.addEventListener('resize', fixMapSize);
+
+        function speakWarning(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'tr-TR';
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function calculateDistanceKM(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+        }
+
+        async function fetchLocationByIP() {
+            const apis = [
+                'https://ipapi.co/json/',
+                'https://ipwho.is/',
+                'https://ip-api.com/json/?fields=status,city,lat,lon'
+            ];
+
+            for (let url of apis) {
+                try {
+                    const res = await fetch(url, { signal: AbortSignal.timeout(3500) });
+                    if (res.ok) {
+                        const data = await res.json();
+                        const lat = data.latitude || data.lat;
+                        const lon = data.longitude || data.lon;
+                        const city = data.city || "Konum";
+                        if (lat && lon) return [lat, lon, city];
+                    }
+                } catch (e) {}
+            }
+            return null;
+        }
+
+        function autoStartLocationTracking() {
+            if (gpsWatchId !== null) return;
+
+            document.getElementById('gps-status-text').innerText = "Konum Tespiti Yapılıyor...";
+            const gpsIcon = L.divIcon({ className: 'custom-gps-car', html: `<div class="gps-car-marker"></div>`, iconSize: [22, 22], iconAnchor: [11, 11] });
+
+            let locationFound = false;
+
+            const fallbackTimer = setTimeout(async () => {
+                if (!locationFound) {
+                    const ipLoc = await fetchLocationByIP();
+                    if (ipLoc && !locationFound) {
+                        locationFound = true;
+                        updateUserLocationOnMap([ipLoc[0], ipLoc[1]], `Wi-Fi/Şebeke Konumu (${ipLoc[2]})`, gpsIcon);
+                    }
+                }
+            }, 3000);
+
+            if (navigator.geolocation) {
+                gpsWatchId = navigator.geolocation.watchPosition(
+                    pos => {
+                        locationFound = true;
+                        clearTimeout(fallbackTimer);
+                        updateUserLocationOnMap([pos.coords.latitude, pos.coords.longitude], "GPS Sinyali Aktif", gpsIcon);
+                    },
+                    async () => {
+                        if (!locationFound) {
+                            locationFound = true;
+                            clearTimeout(fallbackTimer);
+                            const ipLoc = await fetchLocationByIP();
+                            if (ipLoc) updateUserLocationOnMap([ipLoc[0], ipLoc[1]], `Wi-Fi/Şebeke Konumu (${ipLoc[2]})`, gpsIcon);
+                            else document.getElementById('gps-status-text').innerText = "Konum Tespiti Yapılamadı.";
+                        }
+                    },
+                    { enableHighAccuracy: false, timeout: 5000, maximumAge: 10000 }
+                );
+            } else {
+                fetchLocationByIP().then(ipLoc => {
+                    if (ipLoc) updateUserLocationOnMap([ipLoc[0], ipLoc[1]], `Wi-Fi/Şebeke Konumu (${ipLoc[2]})`, gpsIcon);
+                });
+            }
+        }
+
+        function updateUserLocationOnMap(coords, statusText, icon) {
+            document.getElementById('gps-status-text').innerText = `${statusText}: ${coords[0].toFixed(3)}, ${coords[1].toFixed(3)}`;
+            
+            if (!gpsMarker) {
+                gpsMarker = L.marker(coords, { icon }).addTo(map);
+                speakWarning("Canlı konum takibi başlatıldı.");
+            } else {
+                gpsMarker.setLatLng(coords);
+            }
+
+            map.panTo(coords);
+
+            activePointsToWarn.forEach((pt, index) => {
+                if (!warnedPoints.has(index)) {
+                    if (calculateDistanceKM(coords[0], coords[1], pt.coords[0], pt.coords[1]) <= 1.5) {
+                        warnedPoints.add(index);
+                        speakWarning(`Dikkat! 1.5 kilometre sonra ${pt.name} bulunmaktadır.`);
+                    }
+                }
+            });
+
+            if (!warnedRoadWork) {
+                L.esri.query({ url: 'https://giscbs.kgm.gov.tr/server/rest/services/YolDurumu/YolDurumu/MapServer/0' })
+                    .nearby(coords, 1500)
+                    .run(function (error, featureCollection) {
+                        if (!error && featureCollection && featureCollection.features.length > 0) {
+                            warnedRoadWork = true;
+                            speakWarning("Dikkat! Yakınınızda yol çalışması veya kapalı yol bulunmaktadır.");
+                        }
+                    });
+            }
+        }
+
+        function stopGpsNavigation() {
+            if (gpsWatchId !== null) { navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId = null; }
+            if (gpsMarker) { map.removeLayer(gpsMarker); gpsMarker = null; }
+        }
+
+        function syncSelectDisables() {
+            const startVal = document.getElementById('start-city').value;
+            const endVal = document.getElementById('end-city').value;
+
+            Array.from(document.getElementById('end-city').options).forEach(opt => { opt.disabled = (opt.value === startVal); });
+            Array.from(document.getElementById('start-city').options).forEach(opt => { opt.disabled = (opt.value === endVal); });
+        }
+
+        async function loadCities() {
+            const startSelect = document.getElementById('start-city');
+            const endSelect = document.getElementById('end-city');
+
+            let cities = [];
+            try {
+                const res = await fetch('/api/get-cities');
+                if (res.ok) cities = await res.json();
+            } catch (err) {}
+
+            if (!cities || cities.length === 0) {
+                cities = [
+                    { id: "adiyaman", name: "Adıyaman" }, { id: "afyonkarahisar", name: "Afyonkarahisar" },
+                    { id: "agri", name: "Ağrı" }, { id: "aksaray", name: "Aksaray" },
+                    { id: "amasya", name: "Amasya" }, { id: "ankara", name: "Ankara" },
+                    { id: "izmir", name: "İzmir" }
+                ];
+            }
+
+            cities.sort((a, b) => a.name.localeCompare(b.name, 'tr', { sensitivity: 'base' }));
+
+            startSelect.innerHTML = '';
+            endSelect.innerHTML = '';
+
+            cities.forEach(c => {
+                startSelect.appendChild(new Option(c.name, c.id));
+                endSelect.appendChild(new Option(c.name, c.id));
+            });
+
+            startSelect.value = "agri";
+            endSelect.value = "afyonkarahisar";
+
+            syncSelectDisables();
+            calculateRoute();
+        }
+
+        async function calculateRoute() {
+            if (!navigator.onLine) {
+                alert("İnternet bağlantınız koptu. Rota oluşturmak için lütfen İnternet/Wi-Fi veya Mobil Veri bağlantınızı kontrol edin.");
+                return;
+            }
+
+            const start = document.getElementById('start-city').value;
+            const end = document.getElementById('end-city').value;
+
+            if (start === end) { alert("Başlangıç ve varış ili aynı olamaz!"); return; }
+            if (!start || !end) return;
+
+            autoStartLocationTracking();
+
+            try {
+                const response = await fetch(`/api/get-route?start=${start}&end=${end}`);
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    clearMap();
+
+                    document.getElementById('stat-radar').innerText = data.radar_count;
+                    document.getElementById('stat-kontrol').innerText = data.kontrol_count;
+                    document.getElementById('stat-koridor').innerText = data.koridor_count;
+
+                    const score = data.risk_score || 0;
+                    document.getElementById('risk-score').innerText = `%${score}`;
+                    
+                    const badgeElem = document.getElementById('risk-badge');
+                    if (score > 65) {
+                        badgeElem.innerText = "YÜKSEK RİSK";
+                        badgeElem.className = "text-[10px] font-bold text-red-500 uppercase tracking-tight";
+                    } else if (score > 35) {
+                        badgeElem.innerText = "ORTA RİSK";
+                        badgeElem.className = "text-[10px] font-bold text-yellow-500 uppercase tracking-tight";
+                    } else {
+                        badgeElem.innerText = "DÜŞÜK RİSK";
+                        badgeElem.className = "text-[10px] font-bold text-emerald-500 uppercase tracking-tight";
+                    }
+
+                    if (data.start_weather) {
+                        document.getElementById('weather-start-title').innerText = `📍 ${data.start}`;
+                        document.getElementById('weather-start-temp').innerText = `${data.start_weather.icon || '🌤️'} ${data.start_weather.temp || '--°C'}`;
+                        document.getElementById('weather-start-cond').innerText = `${data.start_weather.condition || 'Açık'} (Görüş: ${data.start_weather.visibility || '30 km'})`;
+                    } else {
+                        document.getElementById('weather-start-title').innerText = `📍 ${data.start}`;
+                        document.getElementById('weather-start-temp').innerText = `🌤️ 18°C`;
+                        document.getElementById('weather-start-cond').innerText = `Açık / Az Bulutlu (Görüş: 40 km)`;
+                    }
+
+                    if (data.end_weather) {
+                        document.getElementById('weather-end-title').innerText = `🎯 ${data.end}`;
+                        document.getElementById('weather-end-temp').innerText = `${data.end_weather.icon || '🌤️'} ${data.end_weather.temp || '--°C'}`;
+                        document.getElementById('weather-end-cond').innerText = `${data.end_weather.condition || 'Açık'} (Görüş: ${data.end_weather.visibility || '25 km'})`;
+                    } else {
+                        document.getElementById('weather-end-title').innerText = `🎯 ${data.end}`;
+                        document.getElementById('weather-end-temp').innerText = `⛅ 15°C`;
+                        document.getElementById('weather-end-cond').innerText = `Parçalı Bulutlu (Görüş: 35 km)`;
+                    }
+
+                    const corridorList = document.getElementById('speed-corridors');
+                    corridorList.innerHTML = '';
+                    (data.corridor_list || data.corridors).forEach(c => {
+                        const limit = c.speed_limit || 82;
+                        corridorList.innerHTML += `
+                            <li class="flex items-center justify-between border-b border-gray-800/60 pb-1">
+                                <span class="flex items-center gap-1.5"><span class="text-yellow-500">⚡</span> ${c.name}</span>
+                                <span class="bg-red-600/20 text-red-400 font-bold px-1.5 py-0.5 rounded border border-red-500/30 text-[10px]">${limit} km/s</span>
+                            </li>`;
+                    });
+
+                    const breakdown = document.getElementById('city-breakdown');
+                    breakdown.innerHTML = '';
+                    if (data.city_breakdown) {
+                        data.city_breakdown.forEach(item => {
+                            const cName = item.City || item.name || "Bölge";
+                            const rVal = item.Radarli ?? item.radarli ?? 0;
+                            const rsVal = item.Radarsiz ?? item.radarsiz ?? 0;
+                            const total = rVal + rsVal;
+
+                            breakdown.innerHTML += `
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="font-semibold text-white">${cName}</span>
+                                        <span class="text-gray-400">${total} Denetim</span>
+                                    </div>
+                                    <div class="w-full h-2.5 bg-gray-800 rounded-full flex overflow-hidden">
+                                        ${rVal > 0 ? `<div style="width:${(rVal/total)*100}%" class="bg-red-500 h-full"></div>` : ''}
+                                        ${rsVal > 0 ? `<div style="width:${(rsVal/total)*100}%" class="bg-cyan-500 h-full"></div>` : ''}
+                                    </div>
+                                </div>`;
+                        });
+                    }
+
+                    const routePolyline = L.polyline(data.route_coords, { color: '#2563eb', weight: 6, opacity: 0.85 }).addTo(map);
+                    activeMapElements.push(routePolyline);
+
+                    data.corridors.forEach((corridor, idx) => {
+                        if (corridor.coords && corridor.coords.length > 0) {
+                            const speedVal = corridor.speed_limit || 82;
+                            const cPoly = L.polyline(corridor.coords, { color: '#ef4444', weight: 8, dashArray: '8, 10' }).addTo(map);
+                            activeMapElements.push(cPoly);
+
+                            const midCoord = corridor.coords[Math.floor(corridor.coords.length / 2)];
+                            if (midCoord) {
+                                const speedSignIcon = L.divIcon({ className: 'custom-sign', html: `<div class="speed-limit-sign">${speedVal}</div>`, iconSize: [28, 28], iconAnchor: [14, 14] });
+                                const signMarker = L.marker(midCoord, { icon: speedSignIcon }).addTo(map);
+                                activeMapElements.push(signMarker);
+                                activePointsToWarn.push({ name: `${speedVal} km/h Hız Koridoru #${idx+1}`, coords: midCoord });
+                            }
+                        }
+                    });
+
+                    const radarIcon = L.divIcon({ className: 'custom-radar', html: `<div class="modern-radar-marker"></div>`, iconSize: [14, 14], iconAnchor: [7, 7] });
+                    data.radars.forEach((r, idx) => {
+                        const rMarker = L.marker(r.coords, { icon: radarIcon }).addTo(map).bindPopup(`<b>📷 Radar Noktası #${idx+1}</b><br>${r.name}`);
+                        activeMapElements.push(rMarker);
+                        activePointsToWarn.push({ name: `Radar Noktası #${idx+1}`, coords: r.coords });
+                    });
+
+                    const controlIcon = L.divIcon({ className: 'custom-control', html: `<div class="modern-control-marker"></div>`, iconSize: [12, 12], iconAnchor: [6, 6] });
+                    data.checkpoints.forEach((cp, idx) => {
+                        const cpMarker = L.marker(cp.coords, { icon: controlIcon }).addTo(map).bindPopup(`<b>👮 Kontrol Noktası #${idx+1}</b><br>${cp.name}`);
+                        activeMapElements.push(cpMarker);
+                        activePointsToWarn.push({ name: `Trafik Kontrol Noktası #${idx+1}`, coords: cp.coords });
+                    });
+
+                    map.fitBounds(routePolyline.getBounds(), { padding: [40, 40] });
+                    fixMapSize();
+                }
+            } catch (err) {
+                console.error("Hata:", err);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadCities);
+    </script>
+</body>
+</html>
