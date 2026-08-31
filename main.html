@@ -134,6 +134,8 @@
             padding: 0; margin: 0; height: 100%; width: 100%; overflow: hidden;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+
+        /* DESKTOP SIDEBAR STİLİ */
         #sidebar {
             position: absolute; top: 15px; right: 15px; width: 380px;
             background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(12px);
@@ -141,7 +143,10 @@
             box-shadow: 0 20px 35px rgba(0,0,0,0.4);
             border: 1px solid rgba(255, 255, 255, 0.1);
             color: #f8fafc;
+            max-height: calc(100vh - 30px);
+            overflow-y: auto;
         }
+
         h2 { margin-top: 0; font-size: 18px; color: #f8fafc; font-weight: 700; }
         .panel-group { margin-bottom: 15px; }
         .panel-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px; color: #94a3b8; }
@@ -186,6 +191,7 @@
             z-index: 100; font-size: 13px; font-weight: 600; box-shadow: 0 10px 25px rgba(0,0,0,0.4);
             display: flex; align-items: center; gap: 10px; border: 1px solid rgba(255,255,255,0.15);
             backdrop-filter: blur(8px);
+            white-space: nowrap;
         }
         .nav-pulse { width: 10px; height: 10px; background: #22c55e; border-radius: 50%; animation: pulseDot 1.5s infinite; }
         @keyframes pulseDot {
@@ -198,6 +204,34 @@
         .esriPopup .titlePane { background-color: #0f172a !important; color: #38bdf8 !important; font-weight: bold; }
         .esriPopup .contentPane { background-color: #1e293b !important; color: #f8fafc !important; font-size: 12px; }
         .esriPopup .outerPointer, .esriPopup .pointer { background-color: #1e293b !important; }
+
+        /* 📱 MOBİL UYUMLULUK KONTROLLERİ (RESPONSIVE DESIGN) */
+        @media (max-width: 768px) {
+            #navBanner {
+                top: 10px;
+                font-size: 11px;
+                padding: 6px 14px;
+                max-width: 90%;
+            }
+            #sidebar {
+                top: auto;
+                bottom: 10px;
+                left: 10px;
+                right: 10px;
+                width: auto;
+                max-height: 45vh;
+                padding: 14px;
+                border-radius: 12px;
+            }
+            h2 { font-size: 15px; margin-bottom: 8px; }
+            .panel-group { margin-bottom: 8px; }
+            .panel-group label { font-size: 11px; margin-bottom: 3px; }
+            .panel-group select { padding: 6px 8px; font-size: 12px; }
+            .layer-options { padding: 8px; margin-bottom: 8px; }
+            .layer-options label { font-size: 11px; margin-bottom: 4px; }
+            .btn-analiz { padding: 8px 10px; font-size: 12px; }
+            #sonucPaneli { max-height: 100px; font-size: 11px; padding: 8px; margin-top: 8px; }
+        }
     </style>
 
     <script src="https://js.arcgis.com/3.34/"></script>
