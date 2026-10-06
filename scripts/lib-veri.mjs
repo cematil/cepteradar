@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const DATA_DIR = path.join(ROOT, 'iller_kucuk');
-const SPECIAL = new Set(['index.json', 'koridorlar.json']);
+const SPECIAL = new Set(['index.json', 'koridorlar.json', 'osm_radarlar.json']);
 
 export const slug = (s) => String(s || '').trim().toLocaleLowerCase('tr')
   .replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i')

@@ -100,6 +100,21 @@ node scripts/veri-birlestir.mjs indirilenler/     # klasördeki tüm .json'ları
 Her dosya tek bir rota nesnesi (`{kalkis_il, varis_il, radar_sayisi, ...}`) veya bunların dizisi olabilir.
 Kayıtlar kalkış iline göre `iller_kucuk/<il>.json` dosyalarına eklenir, mevcut kayıtlar korunur ve `iller_kucuk/index.json` yeniden üretilir.
 
+## 📷 Gerçek Konumlu Hız Kameraları (OpenStreetMap)
+
+İçişleri verisi radarların yerini vermez. Sabit, ortalama hız ve mobil kamera konumları
+OpenStreetMap'ten alınır ve `iller_kucuk/osm_radarlar.json` dosyasına yazılır:
+
+```bash
+npm run veri:osm                                  # Overpass servisinden indirir (birkaç saniye)
+node scripts/osm-cek.mjs export.geojson           # overpass-turbo.eu'dan dışa aktarılmış dosyayı işler
+```
+
+Rota üzerindeki kameralar haritada yanıp söner ve 2 km kala sesli uyarı verilir. Sürüş modunda
+rota dışında da, gidiş yönünde önde kalan kameralar için uyarılır. Katman menüsündeki
+"Tüm Hız Kameraları" ile Türkiye'deki tüm kameralar görülebilir.
+Veri: © OpenStreetMap katkıda bulunanlar (ODbL); gönüllü verisidir, eksik veya eski olabilir.
+
 ## 📁 Proje Dosya Yapısı
 
 ```struct

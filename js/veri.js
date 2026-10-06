@@ -123,6 +123,17 @@
     return corridorsPromise;
   }
 
+  // OpenStreetMap'ten alınmış, gerçek konumlu hız kameraları (scripts/osm-cek.mjs üretir).
+  let camerasPromise = null;
+  function loadCameras() {
+    if (!camerasPromise) {
+      camerasPromise = fetchJson(`${DATA_DIR}/osm_radarlar.json`).then(asList)
+        .then((l) => l.filter((c) => Number.isFinite(c.lat) && Number.isFinite(c.lon)))
+        .catch(() => []);
+    }
+    return camerasPromise;
+  }
+
   // Yaklaşık mesafe (km) — kısa mesafelerde yeterince hassas ve hızlı.
   function fastKm(a, b) {
     const x = (b[1] - a[1]) * Math.cos(((a[0] + b[0]) / 2) * Math.PI / 180);
@@ -169,6 +180,48 @@
     };
   }
 
+  // p noktasının [a, b] doğru parçasına uzaklığı (km)
+  function segmentKm(p, a, b) {
+    const k = Math.cos(p[0] * Math.PI / 180);
+    const ax = (a[1] - p[1]) * k, ay = a[0] - p[0];
+    const dx = (b[1] - p[1]) * k - ax, dy = b[0] - p[0] - ay;
+    const l2 = dx * dx + dy * dy;
+    const t = l2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / l2)) : 0;
+    return Math.hypot(ax + t * dx, ay + t * dy) * 111.32;
+  }
+
+  // Rotanın üzerindeki (en fazla `maxKm` uzaklıktaki) kameralar, rota sırasına göre.
+  function camerasOnRoute(dense, nearestIndex, cameras, maxKm = 0.08) {
+    const hits = [];
+    for (const c of cameras) {
+      const p = [c.lat, c.lon];
+      const i = nearestIndex(p, 0.5);
+      if (i < 0) continue;
+      let d = dense.length > 1 ? Infinity : fastKm(p, dense[i]);
+      for (const j of [i - 1, i]) if (j >= 0 && j + 1 < dense.length) d = Math.min(d, segmentKm(p, dense[j], dense[j + 1]));
+      if (d <= maxKm) hits.push({ ...c, routeIndex: i });
+    }
+    return hits.sort((a, b) => a.routeIndex - b.routeIndex);
+  }
+
+  // Noktaları ~2 km'lik hücrelere dizer; near(p, km) yakındaki noktaları döndürür.
+  function pointIndex(items) {
+    const grid = new Map();
+    for (const it of items) {
+      const k = cellKey([it.lat, it.lon]);
+      if (!grid.has(k)) grid.set(k, []);
+      grid.get(k).push(it);
+    }
+    return function near(p, maxKm) {
+      const r = Math.floor(p[0] / CELL), c = Math.floor(p[1] / CELL), n = Math.ceil(maxKm / 2) + 1;
+      const out = [];
+      for (let dr = -n; dr <= n; dr++) for (let dc = -n; dc <= n; dc++) {
+        for (const it of grid.get(`${r + dr}:${c + dc}`) || []) if (fastKm(p, [it.lat, it.lon]) <= maxKm) out.push(it);
+      }
+      return out;
+    };
+  }
+
   // Güzergah üzerinde, aynı yönde ilerleyen hız koridorlarını bulur.
   function corridorsOnRoute(dense, nearestIndex, corridors) {
     const hits = [];
@@ -206,5 +259,6 @@
   window.Veri = {
     slug, loadIndex, hasRoute, findRoute, isStraightLine, osrmRoute, weather,
     loadCorridors, densify, buildRouteIndex, corridorsOnRoute, provinceSegments,
+    loadCameras, camerasOnRoute, pointIndex, fastKm,
   };
 })();

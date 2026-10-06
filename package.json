@@ -10,7 +10,8 @@
     "www": "node scripts/www-hazirla.mjs",
     "android:hazirla": "node scripts/www-hazirla.mjs && (test -d android || npx cap add android) && node scripts/android-hazirla.mjs && npx cap sync android",
     "android:apk": "npm run android:hazirla && cd android && ./gradlew assembleDebug",
-    "veri:cek": "node scripts/icisleri-cek.mjs"
+    "veri:cek": "node scripts/icisleri-cek.mjs",
+    "veri:osm": "node scripts/osm-cek.mjs"
   },
   "keywords": [],
   "author": "",

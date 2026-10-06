@@ -36,6 +36,14 @@
   }
   const pathLengthKm = (coords) => coords.reduce((s, p, i) => i ? s + distanceKm(coords[i - 1][0], coords[i - 1][1], p[0], p[1]) : 0, 0);
 
+  // a'dan b'ye pusula yönü (derece)
+  function bearing(a, b) {
+    const r = Math.PI / 180;
+    const y = Math.sin((b[1] - a[1]) * r) * Math.cos(b[0] * r);
+    const x = Math.cos(a[0] * r) * Math.sin(b[0] * r) - Math.sin(a[0] * r) * Math.cos(b[0] * r) * Math.cos((b[1] - a[1]) * r);
+    return (Math.atan2(y, x) / r + 360) % 360;
+  }
+
   function speak(text) {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
@@ -43,6 +51,22 @@
     u.lang = 'tr-TR';
     window.speechSynthesis.speak(u);
   }
+
+  // ---------------------------------------------------------------- HIZ KAMERALARI (OSM)
+  const CAMERA_TYPES = {
+    sabit: { label: 'Sabit hız kamerası', say: 'sabit hız kamerası', color: '#f97316' },
+    ortalama: { label: 'Ortalama hız kamerası', say: 'ortalama hız tespit kamerası', color: '#eab308' },
+    mobil: { label: 'Mobil radar noktası', say: 'mobil radar noktası olabilir', color: '#a855f7' },
+  };
+  const cameraType = (c) => CAMERA_TYPES[c.tur] || CAMERA_TYPES.sabit;
+  const cameraPopup = (c) => `<b>📷 ${esc(c.ad || cameraType(c).label)}</b>` +
+    `${c.ad ? `<br>${cameraType(c).label}` : ''}${c.hiz ? `<br>Hız sınırı: ${c.hiz} km/s` : ''}` +
+    '<br><small>Kaynak: OpenStreetMap gönüllüleri; güncel olmayabilir.</small>';
+  const cameraWarning = (c) => ({
+    key: `cam:${c.id}`, coords: [c.lat, c.lon],
+    say: `Dikkat! ${WARN_DISTANCE_KM} kilometre sonra ${cameraType(c).say}.${c.hiz ? ` Hız sınırı ${c.hiz}.` : ''}`,
+    text: `📷 ${WARN_DISTANCE_KM} km sonra ${cameraType(c).label.toLowerCase()}${c.hiz ? ` (${c.hiz} km/s)` : ''}`,
+  });
 
   // ---------------------------------------------------------------- HARİTA
   const streetTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' });
@@ -70,9 +94,20 @@
       });
   });
 
+  // Tüm Türkiye'deki hız kameraları (açılınca bir kez yüklenir)
+  const allCamerasLayer = L.layerGroup();
+  allCamerasLayer.on('add', async () => {
+    if (allCamerasLayer.getLayers().length) return;
+    (await Veri.loadCameras()).forEach((c) => {
+      L.circleMarker([c.lat, c.lon], { radius: 5, color: '#fff', weight: 1.5, fillColor: CAMERA_TYPES[c.tur]?.color || '#f97316', fillOpacity: 1 })
+        .bindPopup(cameraPopup(c)).addTo(allCamerasLayer);
+    });
+  });
+  map.attributionControl.addAttribution('Kamera konumları © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> katkıda bulunanlar');
+
   L.control.layers(
     { '🗺️ Gerçek Karayolu Haritası': streetTile, '🌙 Koyu Tema Harita': darkTile },
-    { '🚧 KGM Yol Çalışmaları & Kapalı Yollar': kgmLayer },
+    { '🚧 KGM Yol Çalışmaları & Kapalı Yollar': kgmLayer, '📷 Tüm Hız Kameraları (Türkiye)': allCamerasLayer },
     { position: 'topright' }
   ).addTo(map);
 
@@ -114,6 +149,7 @@
         <div><i class="lg-line lg-dash"></i> Hız Koridoru</div>
         <div><i class="lg-dot lg-blink bg-red"></i> Radarlı Denetim (il bazında)</div>
         <div><i class="lg-dot lg-blink" style="background:#0891b2"></i> Kontrol Noktası (il bazında)</div>
+        <div><i class="lg-dot lg-blink" style="background:#f97316"></i> Hız Kamerası (gerçek konum)</div>
         <div><i class="lg-sq bg-amber"></i> Yol Çalışması / Kapanma</div>
         <div><i class="speed-limit-sign sm">82</i> Hız Limiti Tabelası</div>
         <div><i class="lg-dot lg-start"></i> Kalkış / <i class="lg-dot lg-end"></i> Varış</div>
@@ -303,6 +339,7 @@
       const nearestIndex = Veri.buildRouteIndex(dense);
       const realOwn = (rec ? (rec.hiz_koridorlari || []) : []).filter((c) => Array.isArray(c.coords) && c.coords.length > 1 && !Veri.isStraightLine(c.coords));
       const onRoute = Veri.corridorsOnRoute(dense, nearestIndex, (await Veri.loadCorridors()).concat(realOwn));
+      const cameras = Veri.camerasOnRoute(dense, nearestIndex, await Veri.loadCameras());
       if (seq !== requestSeq) return;
       const seen = new Set();
       const mapCorridors = onRoute.filter((c) => {
@@ -323,6 +360,7 @@
       $('stat-radar').textContent = rec ? radar : '—';
       $('stat-kontrol').textContent = rec ? kontrol : '—';
       $('stat-koridor').textContent = koridor;
+      $('stat-kamera').textContent = cameras.length;
       setRisk(Math.min(99, Math.round(((radar + kontrol + koridor) / 45) * 100)), !!rec);
 
       const meta = [`${Math.round(distKm)} km${approx ? ' (yaklaşık)' : ''}`];
@@ -353,6 +391,15 @@
           say: `Dikkat! ${WARN_DISTANCE_KM} kilometre sonra ${limit} kilometre hız sınırlı hız koridoru başlıyor.`,
           text: `⚡ ${WARN_DISTANCE_KM} km sonra hız koridoru (${limit} km/s)`,
         });
+      });
+
+      // Gerçek konumlu hız kameraları (OpenStreetMap)
+      cameras.forEach((c) => {
+        addLayer(L.marker([c.lat, c.lon], {
+          icon: L.divIcon({ className: '', html: `<div class="blink-marker kamera ${esc(c.tur)}"><span>${c.hiz || '📷'}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 15] }),
+          zIndexOffset: 600,
+        })).bindPopup(cameraPopup(c));
+        warnPoints.push(cameraWarning(c));
       });
 
       // İçişleri verisi il bazındadır (kesin nokta yok): radar ve kontrol işaretleri,
@@ -412,6 +459,9 @@
   let watchId = null;
   let gpsMarker = null;
   let wakeLock = null;
+  let cameraNear = null;
+  let lastFix = null;
+  Veri.loadCameras().then((l) => { cameraNear = Veri.pointIndex(l); });
 
   async function locationByIP() {
     const apis = ['https://ipapi.co/json/', 'https://ipwho.is/'];
@@ -454,6 +504,26 @@
         toast(pt.text);
       }
     });
+
+    // Rotadan bağımsız: yaklaşılan hız kameraları (rota dışına çıkılsa da uyarır)
+    if (cameraNear) {
+      const prev = lastFix;
+      lastFix = ll;
+      if (prev && distanceKm(prev[0], prev[1], lat, lon) > 0.02) {
+        // Sadece gidiş yönünde (±30°) önde kalan, henüz uyarılmamış en yakın kamera için uyarılır.
+        const heading = bearing(prev, ll);
+        const ahead = cameraNear(ll, WARN_DISTANCE_KM)
+          .filter((c) => !warned.has(`cam:${c.id}`))
+          .filter((c) => { const d = Math.abs(bearing(ll, [c.lat, c.lon]) - heading) % 360; return Math.min(d, 360 - d) <= 30; })
+          .sort((x, y) => distanceKm(lat, lon, x.lat, x.lon) - distanceKm(lat, lon, y.lat, y.lon));
+        if (ahead.length) {
+          const w = cameraWarning(ahead[0]);
+          warned.add(w.key);
+          speak(w.say);
+          toast(w.text);
+        }
+      }
+    }
 
     // Yol çalışmaları: en fazla 20 sn'de bir sorgulanır, her çalışma için bir kez uyarılır.
     const now = Date.now();
@@ -509,6 +579,7 @@
     if (watchId !== null) navigator.geolocation.clearWatch(watchId);
     watchId = null;
     if (gpsMarker) { map.removeLayer(gpsMarker); gpsMarker = null; }
+    lastFix = null;
     if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
     const btn = $('btn-drive');
     btn.classList.remove('active');

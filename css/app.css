@@ -40,7 +40,7 @@ code { background: #1e293b; padding: 0 4px; border-radius: 4px; color: #fcd34d; 
 .muted { color: var(--muted); }
 .small { font-size: 12px; }
 .c-red { color: var(--red); } .c-cyan { color: var(--cyan); } .c-yellow { color: var(--yellow); }
-.c-amber { color: var(--amber); } .c-blue { color: #60a5fa; }
+.c-amber { color: var(--amber); } .c-orange { color: #f97316; } .c-blue { color: #60a5fa; }
 .bg-red { background: var(--red); } .bg-cyan { background: var(--cyan); }
 .bg-blue { background: #2563eb; } .bg-amber { background: var(--amber); }
 
@@ -144,7 +144,7 @@ code { background: #1e293b; padding: 0 4px; border-radius: 4px; color: #fcd34d; 
 .risk-gauge[data-level="high"] small { color: var(--red); }
 
 /* İstatistikler */
-.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .stat { text-align: center; padding: 12px 6px; }
 .stat b { display: block; font-size: 28px; font-weight: 900; line-height: 1.1; }
 .stat span { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); }
@@ -323,6 +323,9 @@ code { background: #1e293b; padding: 0 4px; border-radius: 4px; color: #fcd34d; 
 }
 .blink-marker.radar { background: var(--red); }
 .blink-marker.kontrol { --glow: rgba(34, 211, 238, .8); background: #0891b2; }
+.blink-marker.kamera { --glow: rgba(249, 115, 22, .85); background: #f97316; border-radius: 8px; font-size: 11px; }
+.blink-marker.kamera.ortalama { --glow: rgba(234, 179, 8, .85); background: #ca8a04; }
+.blink-marker.kamera.mobil { --glow: rgba(168, 85, 247, .85); background: #9333ea; }
 .lg-blink { width: 12px; height: 12px; border: 2px solid #fff; animation: blinkFade 1s infinite; }
 @media (prefers-reduced-motion: reduce) {
   .blink, .blink-marker, .lg-blink, .leaflet-overlay-pane path.blink-line { animation: none; }
