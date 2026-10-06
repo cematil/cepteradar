@@ -182,7 +182,6 @@
       </div>`;
     L.DomEvent.disableClickPropagation(div);
     div.querySelector('.legend-toggle').addEventListener('click', () => div.classList.toggle('collapsed'));
-    if (window.matchMedia('(min-width: 1024px)').matches) div.classList.remove('collapsed');
     return div;
   };
   legend.addTo(map);
