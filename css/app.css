@@ -377,3 +377,61 @@ code { background: #1e293b; padding: 0 4px; border-radius: 4px; color: #fcd34d; 
 @media (prefers-reduced-motion: reduce) {
   .blink, .blink-marker, .lg-blink, .leaflet-overlay-pane path.blink-line { animation: none; }
 }
+
+/* ---------------------------------------------------------------- Sürüş: hız kadranı */
+.kadran {
+  position: absolute; z-index: 800; left: 10px; bottom: 96px; width: 124px; height: 124px; padding: 0;
+  border-radius: 50%; border: 2px solid var(--line); background: rgba(11, 17, 32, .92); color: #fff; cursor: pointer;
+  display: grid; place-items: center; box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
+  --k: #3b82f6;
+}
+.kadran.hidden { display: none; }
+.kadran svg { position: absolute; inset: 4px; width: calc(100% - 8px); height: calc(100% - 8px); }
+.kadran path { fill: none; stroke-width: 9; stroke-linecap: round; }
+.kadran .k-bg { stroke: rgba(148, 163, 184, .25); }
+.kadran .k-val { stroke: var(--k); transition: stroke-dashoffset .4s ease, stroke .3s; }
+.kadran .k-hiz { position: absolute; top: 30px; font: 900 40px/1 Arial, sans-serif; color: var(--k); transition: color .3s; }
+.kadran .k-birim { position: absolute; top: 72px; font-size: 10px; color: var(--muted); }
+.kadran .k-sinir { position: absolute; top: 86px; font-size: 11px; font-weight: 800; }
+.kadran .k-hud { position: absolute; bottom: -9px; padding: 1px 7px; border-radius: 99px; background: #1e293b; border: 1px solid var(--line); font: 800 9px/1.4 Arial, sans-serif; font-style: normal; color: var(--muted); }
+.kadran[data-level="iyi"] { --k: #22c55e; }
+.kadran[data-level="dikkat"] { --k: #facc15; }
+.kadran[data-level="asim"] { --k: #ef4444; border-color: #ef4444; animation: blinkFade 1s ease-in-out infinite; }
+
+/* Sürüş: ortalama hız koridoru sayacı */
+.koridor-panel {
+  position: absolute; z-index: 800; left: 10px; right: 10px; top: 112px; max-width: 380px; margin: 0 auto;
+  padding: 9px 12px; border-radius: 14px; background: rgba(11, 17, 32, .94); color: #fff;
+  border: 2px solid #22c55e; box-shadow: 0 8px 24px rgba(0, 0, 0, .4); font-size: 12px;
+}
+.koridor-panel.hidden { display: none; }
+.koridor-panel[data-level="asim"] { border-color: #ef4444; }
+.kp-bas { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.kp-bas b { flex: 1; font-size: 13px; }
+.kp-tabela { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #000; border: 3px solid #dc2626; box-shadow: 0 0 0 2px #facc15; font: 900 11px/1 Arial, sans-serif; }
+.kp-sure { font: 900 18px/1 Arial, sans-serif; color: #facc15; }
+.kp-satir { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); }
+.kp-satir b { color: #fff; }
+
+/* Sürüş: uyarı anında ekran kenarı parlaması */
+.ekran-flas { position: fixed; inset: 0; z-index: 250000; pointer-events: none; opacity: 0; box-shadow: inset 0 0 0 10px var(--flas, #f97316), inset 0 0 60px 20px var(--flas, #f97316); }
+.ekran-flas.on { animation: ekranFlas 1.1s ease-out 2; }
+@keyframes ekranFlas { 0% { opacity: 0; } 15% { opacity: .95; } 100% { opacity: 0; } }
+
+/* Sürüş: HUD (ön cama yansıtma) modu */
+.hud { position: fixed; inset: 0; z-index: 260000; background: #000; color: #fff; display: flex; flex-direction: column; }
+.hud.hidden { display: none; }
+.hud-ic { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
+.hud-ust { display: flex; align-items: center; gap: 18px; }
+.hud-sinir { width: 22vmin; height: 22vmin; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #000; border: 3vmin solid #dc2626; font: 900 9vmin/1 Arial, sans-serif; }
+.hud-sinir.bos { opacity: .35; }
+.hud-sonraki { font: 800 6vmin/1.2 Arial, sans-serif; color: #facc15; max-width: 60vw; }
+.hud-hiz { font: 900 38vmin/1 Arial, sans-serif; letter-spacing: -1vmin; color: #22c55e; }
+.hud-birim { font: 700 5vmin/1 Arial, sans-serif; color: #94a3b8; }
+.hud-koridor { margin-top: 3vmin; font: 800 5vmin/1.2 Arial, sans-serif; color: #facc15; }
+.hud[data-level="dikkat"] .hud-hiz { color: #facc15; }
+.hud[data-level="asim"] .hud-hiz { color: #ef4444; }
+.hud[data-level="yok"] .hud-hiz { color: #e5e7eb; }
+.hud-dugmeler { display: flex; gap: 10px; justify-content: center; padding: 10px 10px calc(14px + var(--safe-b)); }
+.hud-dugmeler button { padding: 10px 16px; border-radius: 999px; border: 1px solid #334155; background: #0f172a; color: #cbd5e1; font-weight: 800; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .ekran-flas.on { animation-duration: .01s; } .kadran[data-level="asim"] { animation: none; } }

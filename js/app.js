@@ -44,6 +44,15 @@
     return (Math.atan2(y, x) / r + 360) % 360;
   }
 
+  const angleDiff = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
+  const distWord = (m) => (m >= 1000 ? `${String(m / 1000).replace('.', ',')} kilometre` : `${m} metre`);
+  const distShort = (m) => (m >= 1000 ? `${String(m / 1000).replace('.', ',')} km` : `${m} m`);
+  function announce(pt, m) {
+    speak(`Dikkat! ${distWord(m)} sonra ${pt.what}.${pt.extra}`);
+    toast(`${pt.icon} ${distShort(m)} sonra ${pt.what}${pt.note ? ` (${pt.note})` : ''}`);
+    if (window.Surus) Surus.flash(pt.type);
+  }
+
   // Uyarılar sıraya alınır (aynı anda birden çok uyarı birbirini kesmesin); interrupt=true öncekileri susturur.
   function speak(text, interrupt) {
     if (!('speechSynthesis' in window)) return;
@@ -63,11 +72,13 @@
   const cameraPopup = (c) => `<b>📷 ${esc(c.ad || cameraType(c).label)}</b>` +
     `${c.ad ? `<br>${cameraType(c).label}` : ''}${c.hiz ? `<br>Hız sınırı: ${c.hiz} km/s` : ''}` +
     '<br><small>Kaynak: OpenStreetMap gönüllüleri; güncel olmayabilir.</small>';
-  const cameraWarning = (c) => ({
-    key: `cam:${c.id}`, type: 'kamera', coords: [c.lat, c.lon],
-    say: `Dikkat! ${WARN_DISTANCE_KM} kilometre sonra ${cameraType(c).say}.${c.hiz ? ` Hız sınırı ${c.hiz}.` : ''}`,
-    text: `📷 ${WARN_DISTANCE_KM} km sonra ${cameraType(c).label.toLowerCase()}${c.hiz ? ` (${c.hiz} km/s)` : ''}`,
-  });
+  // Kademeli uyarı mesafeleri (metre). İl bazındaki radar/kontrol bölgelerinin konumu yaklaşık olduğu
+  // için onlarda tek uyarı verilir.
+  const STAGES = { kamera: [1000, 500, 200], koridor: [1000, 500, 200], tren: [500, 200], okul: [500, 200], tehlike: [500, 200], radar: [2000], kontrol: [2000] };
+  // what: söylenecek ad ("sabit hız kamerası"), extra: sesli ek bilgi, note: ekrandaki kısa ek bilgi
+  const warnPoint = (key, type, icon, coords, what, extra = '', note = '') => ({ key, type, icon, coords, what, extra, note, stages: STAGES[type] || [2000] });
+  const cameraWarning = (c) => warnPoint(`cam:${c.id}`, 'kamera', '📷', [c.lat, c.lon], cameraType(c).say,
+    c.hiz ? ` Hız sınırı ${c.hiz}.` : '', c.hiz ? `${c.hiz} km/s` : '');
 
   // ---------------------------------------------------------------- İŞARETLER
   // Haritadaki her işaret buradan üretilir; lejant da aynı fonksiyonları kullanır (birebir aynı görünüm).
@@ -394,11 +405,7 @@
         const info = hazardInfo(h);
         addLayer(L.marker(pos, { icon: symIcon(SYM.poi(h.kind, info.icon, 'blink'), 26), zIndexOffset: 450 }))
           .bindPopup(`<b>${info.icon} ${esc(info.label)}</b><br><small>Kaynak: OpenStreetMap</small>`);
-        warnPoints.push({
-          key: `osm:${h.id}`, type: h.kind, dist: 0.4, coords: pos,
-          say: `Dikkat! 400 metre sonra ${info.say}. Yavaşlayın.`,
-          text: `${info.icon} 400 m sonra ${info.label.toLocaleLowerCase('tr')}`,
-        });
+        warnPoints.push(warnPoint(`osm:${h.id}`, h.kind, info.icon, pos, info.say, ' Yavaşlayın.'));
         alerts.push({ idx, coords: pos, icon: info.icon, text: info.label });
         added++;
       });
@@ -536,11 +543,7 @@
         const mid = cc[Math.floor(cc.length / 2)];
         addLayer(L.marker(mid, { icon: symIcon(SYM.koridor(limit)) }).bindPopup(popup));
         alerts.push({ idx: c.routeIndex ?? 0, coords: cc[0], icon: '⚡', text: `Hız koridoru başlıyor: ${c.name || 'Hız koridoru'} (${limit} km/s${c.length ? `, ${c.length} km` : ''})` });
-        warnPoints.push({
-          key: `k${i}`, type: 'koridor', coords: cc[0],
-          say: `Dikkat! ${WARN_DISTANCE_KM} kilometre sonra ${limit} kilometre hız sınırlı hız koridoru başlıyor.`,
-          text: `⚡ ${WARN_DISTANCE_KM} km sonra hız koridoru (${limit} km/s)`,
-        });
+        warnPoints.push(warnPoint(`k${i}`, 'koridor', '⚡', cc[0], 'ortalama hız koridoru başlıyor', ` Hız sınırı ${limit}.`, `${limit} km/s`));
       });
 
       // Gerçek konumlu hız kameraları (OpenStreetMap)
@@ -571,22 +574,14 @@
             addLayer(L.marker(pos, { icon: symIcon(SYM.radar(r)), zIndexOffset: 500 }))
               .bindPopup(`<b>📷 ${esc(il.ad)} — ${r} radarlı denetim</b>${note}`);
             alerts.push({ idx: atIdx(0.4), icon: '🔴', text: `Radar denetim bölgesi — ${il.ad}: ${r} radarlı denetim (il bazında${estNote})` });
-            warnPoints.push({
-              key: `r${i}`, type: 'radar', coords: pos,
-              say: `Dikkat! ${WARN_DISTANCE_KM} kilometre sonra radar denetim bölgesi. ${il.ad} ilinde ${r} radarlı denetim noktası bulunuyor.`,
-              text: `📷 ${WARN_DISTANCE_KM} km sonra radar bölgesi (${il.ad}: ${r})`,
-            });
+            warnPoints.push(warnPoint(`r${i}`, 'radar', '🔴', pos, 'radar denetim bölgesi', ` ${il.ad} ilinde ${r} radarlı denetim noktası bulunuyor.`, `${il.ad}: ${r}`));
           }
           if (rs > 0) {
             const pos = at(0.6);
             addLayer(L.marker(pos, { icon: symIcon(SYM.kontrol(rs)), zIndexOffset: 500 }))
               .bindPopup(`<b>👮 ${esc(il.ad)} — ${rs} radarsız kontrol noktası</b>${note}`);
             alerts.push({ idx: atIdx(0.6), icon: '🔵', text: `Kontrol noktası bölgesi — ${il.ad}: ${rs} kontrol noktası (il bazında${estNote})` });
-            warnPoints.push({
-              key: `c${i}`, type: 'kontrol', coords: pos,
-              say: `Dikkat! ${WARN_DISTANCE_KM} kilometre sonra trafik kontrol noktası bölgesi. ${il.ad} ilinde ${rs} kontrol noktası bulunuyor.`,
-              text: `👮 ${WARN_DISTANCE_KM} km sonra kontrol noktası bölgesi (${il.ad}: ${rs})`,
-            });
+            warnPoints.push(warnPoint(`c${i}`, 'kontrol', '🔵', pos, 'trafik kontrol noktası bölgesi', ` ${il.ad} ilinde ${rs} kontrol noktası bulunuyor.`, `${il.ad}: ${rs}`));
           }
         });
       }
@@ -617,6 +612,8 @@
   let wakeLock = null;
   let cameraNear = null;
   let lastFix = null;
+  let heading = null;
+  let nextAlert = null;
   let zoomOnFix = false;
   Veri.loadCameras().then((l) => { cameraNear = Veri.pointIndex(l); });
 
@@ -654,35 +651,31 @@
     // Sürüş başladığında ilk konumda sokak seviyesine yaklaş (tabela ve geçitler görünsün).
     if (zoomOnFix) { zoomOnFix = false; if (map.getZoom() < 14) map.setView(ll, 15); else map.panTo(ll); } else map.panTo(ll);
 
-    warnPoints.forEach((pt) => {
-      if (!warned.has(pt.key) && distanceKm(lat, lon, pt.coords[0], pt.coords[1]) <= (pt.dist || WARN_DISTANCE_KM)) {
-        // Aynı türden birbirine çok yakın noktalar (ör. aynı yerden başlayan iki koridor) için tek uyarı ver.
-        warnPoints.forEach((o) => { if (o.type === pt.type && distanceKm(pt.coords[0], pt.coords[1], o.coords[0], o.coords[1]) < 0.5) warned.add(o.key); });
-        warned.add(pt.key);
-        speak(pt.say);
-        toast(pt.text);
-      }
-    });
+    // Gidiş yönü (son iki konumdan)
+    if (lastFix && distanceKm(lastFix[0], lastFix[1], lat, lon) > 0.015) { heading = bearing(lastFix, ll); lastFix = ll; }
+    else if (!lastFix) lastFix = ll;
+    const ahead = (pt, tol) => heading == null || angleDiff(bearing(ll, pt.coords), heading) <= tol;
 
-    // Rotadan bağımsız: yaklaşılan hız kameraları (rota dışına çıkılsa da uyarır)
-    if (cameraNear) {
-      const prev = lastFix;
-      lastFix = ll;
-      if (prev && distanceKm(prev[0], prev[1], lat, lon) > 0.02) {
-        // Sadece gidiş yönünde (±30°) önde kalan, henüz uyarılmamış en yakın kamera için uyarılır.
-        const heading = bearing(prev, ll);
-        const ahead = cameraNear(ll, WARN_DISTANCE_KM)
-          .filter((c) => !warned.has(`cam:${c.id}`))
-          .filter((c) => { const d = Math.abs(bearing(ll, [c.lat, c.lon]) - heading) % 360; return Math.min(d, 360 - d) <= 30; })
-          .sort((x, y) => distanceKm(lat, lon, x.lat, x.lon) - distanceKm(lat, lon, y.lat, y.lon));
-        if (ahead.length) {
-          const w = cameraWarning(ahead[0]);
-          warned.add(w.key);
-          speak(w.say);
-          toast(w.text);
+    // Rota üzerindeki noktalar + rotadan bağımsız olarak gidiş yönündeki (±30°) kameralar
+    const free = cameraNear && heading != null ? cameraNear(ll, 1.2).map(cameraWarning).filter((w) => ahead(w, 30)) : [];
+    const points = warnPoints.concat(free.filter((w) => !warnPoints.some((p) => p.key === w.key)));
+    let next = null;
+    points.forEach((pt) => {
+      const m = distanceKm(lat, lon, pt.coords[0], pt.coords[1]) * 1000;
+      if (m <= 3000 && ahead(pt, 70) && (!next || m < next.m)) next = { icon: pt.icon, what: pt.what, m };
+      const due = pt.stages.filter((s) => m <= s && !warned.has(`${pt.key}@${s}`));
+      // Gidiş yönü belli olmadan (ilk konum) uyarı verilmez; arkada kalan noktalar için yanlış uyarı olmasın.
+      if (!due.length || heading == null || !ahead(pt, 70)) return;
+      const s = Math.min(...due);
+      // Bu aşama ve daha uzak aşamalar tamamlandı; aynı türden 500 m içindeki noktalar da aynı aşamada susar.
+      points.forEach((o) => {
+        if (o === pt || (o.type === pt.type && distanceKm(pt.coords[0], pt.coords[1], o.coords[0], o.coords[1]) < 0.5)) {
+          o.stages.filter((x) => x >= s).forEach((x) => warned.add(`${o.key}@${x}`));
         }
-      }
-    }
+      });
+      announce(pt, m < s * 0.8 ? Math.max(100, Math.round(m / 100) * 100) : s);
+    });
+    nextAlert = next;
 
     // Yol çalışmaları: en fazla 20 sn'de bir sorgulanır, her çalışma için bir kez uyarılır.
     const now = Date.now();
@@ -722,7 +715,8 @@
         const kmh = pos.coords.speed != null && pos.coords.speed >= 0 ? pos.coords.speed * 3.6 : null;
         onPosition(pos.coords.latitude, pos.coords.longitude, `GPS aktif (±${acc} m)`);
         // Hız sınırı eşleştirmesi için yeterince hassas konum gerekir (şebeke konumu kullanılmaz).
-        if (acc <= 60) Yol.update(pos.coords.latitude, pos.coords.longitude, kmh);
+        const st = acc <= 60 ? Yol.update(pos.coords.latitude, pos.coords.longitude, kmh) : null;
+        Surus.update({ lat: pos.coords.latitude, lon: pos.coords.longitude, speed: st ? st.speed : kmh, limit: st ? st.limit : null, heading: (st && st.heading) ?? heading, next: nextAlert });
       },
       (err) => {
         if (err.code === err.PERMISSION_DENIED) {
@@ -732,7 +726,8 @@
       },
       { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
     );
-    Yol.start({ map, speak, toast, warned });
+    Yol.start({ map, speak, toast, warned, flash: Surus.flash });
+    Veri.loadCorridors().then((list) => { if (watchId !== null) Surus.start({ speak, toast, corridors: list }); });
     zoomOnFix = true;
     speak('Sürüş modu başlatıldı. İyi yolculuklar.', true);
   }
@@ -742,7 +737,10 @@
     watchId = null;
     if (gpsMarker) { map.removeLayer(gpsMarker); gpsMarker = null; }
     lastFix = null;
+    heading = null;
+    nextAlert = null;
     Yol.stop();
+    Surus.stop();
     if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
     const btn = $('btn-drive');
     btn.classList.remove('active');

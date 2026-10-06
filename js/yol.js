@@ -180,6 +180,7 @@ out qt;`;
     if (overCount >= 2 && Date.now() - lastOverWarn > 30000) {
       lastOverWarn = Date.now();
       opts.speak(`Hız sınırı ${limit.value}. Lütfen yavaşlayın.`);
+      if (opts.flash) opts.flash('hiz');
       opts.toast(`⚠️ Hız sınırı ${limit.value} km/s — hızınız ${Math.round(speed)} km/s`);
     }
   }
@@ -187,13 +188,15 @@ out qt;`;
   function checkPoints(p) {
     if (heading == null) return;
     const ahead = points
-      .filter((x) => x.kind !== 'tabela' && !warnedPoints.has(x.id) && !(opts.warned && opts.warned.has(`osm:node/${x.id}`)))
+      .filter((x) => x.kind !== 'tabela' && !warnedPoints.has(x.id) && !(opts.warned && opts.warned.has(`osm:node/${x.id}@500`)))
       .map((x) => ({ x, d: km(p, [x.lat, x.lon]) }))
       .filter(({ x, d }) => d <= POINT_WARN_KM && angleDiff(bearing(p, [x.lat, x.lon]), heading) <= 35)
       .sort((a, b) => a.d - b.d)[0];
     if (!ahead) return;
     warnedPoints.add(ahead.x.id);
-    if (opts.warned) opts.warned.add(`osm:node/${ahead.x.id}`);
+    // Rota uyarılarıyla (500 m / 200 m aşamaları) aynı noktayı tekrar söylememek için ortak kayıt
+    if (opts.warned) [500, 200].forEach((s) => opts.warned.add(`osm:node/${ahead.x.id}@${s}`));
+    if (opts.flash) opts.flash(ahead.x.kind);
     const m = Math.max(50, Math.round(ahead.d * 1000 / 50) * 50);
     if (ahead.x.kind === 'tren') {
       opts.speak(`Dikkat! ${m} metre sonra hemzemin geçit. Yavaşlayın.`);
@@ -224,6 +227,7 @@ out qt;`;
     render(limit, speed, currentWay && currentWay.way);
     checkSpeed(limit, speed);
     checkPoints(p);
+    return { limit, speed, heading };
   }
 
   function segmentDistance(p, w) {

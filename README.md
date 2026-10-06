@@ -49,15 +49,21 @@ Haritadaki **▶ Sürüş Modu** düğmesine basın ve konum iznini verin. Ekran
 
 | Uyarı | Ne zaman |
 |---|---|
-| Hız kamerası | 2 km kala (rota dışına çıksanız da, gidiş yönünüzdeki kameralar için) |
-| Hız koridoru başlangıcı | 2 km kala |
-| Radar / kontrol noktası bölgesi | 2 km kala (il bazında) |
-| Hemzemin geçit, okul geçidi, tehlike noktası | 400 m kala |
+| Hız kamerası, ortalama hız koridoru başlangıcı | **1 km, 500 m ve 200 m** kala (rota dışında da, gidiş yönünüzdeki kameralar için) |
+| Hemzemin geçit, okul geçidi, tehlike noktası | 500 m ve 200 m kala |
+| Radar / kontrol noktası bölgesi | 2 km kala (il bazında, yaklaşık konum) |
 | Hız sınırı aşımı | Sınır %10'dan fazla aşılınca (en fazla 30 sn'de bir) |
 | Yol çalışması / kapalı yol | 2 km kala (sadece KGM katmanı açıksa) |
 
-Sol üstteki tabela bulunduğunuz yolun **hız sınırını** ve **anlık hızınızı** gösterir.
-Sınır bilgisi olmayan yollarda yönetmelikteki genel sınır "Genel kural" notuyla gösterilir.
+Sesli uyarılarla birlikte ekranın kenarları uyarının renginde kısa süre parlar.
+Uyarılar sadece gidiş yönünüzde önde kalan noktalar için verilir.
+
+- **Hız kadranı:** Sol altta anlık hızınız; sınırın altında yeşil, %10'a kadar üstünde sarı, daha fazlasında kırmızı.
+  Sol üstteki tabela bulunduğunuz yolun hız sınırıdır (bilgi yoksa "Genel kural").
+- **Ortalama hız koridoru sayacı:** Koridora girince geçen süre, kalan mesafe, ortalamanız, sınırı aşmadan
+  çıkışa en erken ne zaman varabileceğiniz ve kalan kısımda önerilen en yüksek ortalama gösterilir. Çıkışta ortalamanız söylenir.
+- **HUD modu:** Kadrana dokunun. Siyah ekranda büyük hız, sınır, sıradaki uyarı ve koridor bilgisi çıkar.
+  Gece telefonu torpidoya koyup ön cama yansıtmak için **Ayna** düğmesiyle görüntüyü dikey veya yatay çevirin.
 
 ### 3. Harita katmanları
 Sağ üstteki katman düğmesinden:

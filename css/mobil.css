@@ -186,3 +186,7 @@ body[data-screen="welcome"] .tabbar, body[data-screen="map"] .tabbar { display: 
   .tiles { grid-template-columns: repeat(4, 1fr); }
   .sheet { left: 50%; right: auto; width: 520px; transform: translateX(-50%); }
 }
+
+/* Sürüş ekranı öğeleri alt kartın üstünde */
+.scr-map .kadran { bottom: calc(var(--sheet-h, 250px) + 74px); }
+.scr-map .koridor-panel { top: calc(176px + var(--safe-t)); }
