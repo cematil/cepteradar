@@ -45,7 +45,7 @@ Yeni sürüm adı için `package.json` içindeki `"version"` değerini değişti
 
 | Bölüm | Cevap |
 |---|---|
-| Gizlilik politikası | Sitenizdeki `gizlilik.html` adresi (bkz. 6. bölüm). `[İLETİŞİM E-POSTA ADRESİ]` yerine e-postanızı yazmayı unutmayın. |
+| Gizlilik politikası | `https://cematil.github.io/cepteradar/gizlilik.html` (iletişim: mikurin83@gmail.com) |
 | Uygulama erişimi | Tüm işlevler özel erişim gerektirmez (giriş yok) |
 | Reklamlar | Hayır, reklam içermiyor |
 | İçerik derecelendirmesi | Anketi doldurun: şiddet, kumar, kullanıcı etkileşimi vb. yok → genelde "3+" çıkar |
