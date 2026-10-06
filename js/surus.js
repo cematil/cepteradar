@@ -28,7 +28,7 @@
     return { d: Math.hypot(ax + t * dx, ay + t * dy) * 111.32, t };
   }
 
-  const FLASH = { kamera: '#f97316', koridor: '#facc15', radar: '#ef4444', kontrol: '#22d3ee', tren: '#ef4444', okul: '#f59e0b', tehlike: '#f59e0b', hiz: '#ef4444' };
+  const FLASH = { kamera: '#f97316', koridor: '#facc15', radar: '#ef4444', kontrol: '#22d3ee', tren: '#ef4444', okul: '#f59e0b', tehlike: '#f59e0b', hiz: '#ef4444', bildirim: '#a855f7' };
   const MIRRORS = ['none', 'scaleY(-1)', 'scaleX(-1)'];
   const MIRROR_LABEL = ['Ayna: kapalı', 'Ayna: dikey', 'Ayna: yatay'];
 

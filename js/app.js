@@ -91,6 +91,7 @@
     poi: (kind, icon, extra = '') => `<div class="poi-marker ${kind} ${extra}">${icon}</div>`,
     pin: (cls) => `<div class="pin ${cls}"></div>`,
     gps: () => '<div class="gps-car-marker"></div>',
+    bildirim: (icon) => `<div class="bildirim-marker">${icon}</div>`,
   };
   const symIcon = (html, size = 30) => L.divIcon({ className: '', html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
 
@@ -187,6 +188,7 @@
           [SYM.poi('tehlike', '⚠️'), 'Tehlike (heyelan, viraj, hayvan geçidi…)'],
           [`${SYM.pin('pin-start')}${SYM.pin('pin-end')}`, 'Kalkış / Varış'],
           [SYM.gps(), 'Konumunuz (sürüş modu)'],
+          ...(window.CEPTE_FIREBASE ? [[SYM.bildirim('💥'), 'Kullanıcı bildirimi (1 saat görünür)']] : []),
         ].map(([sym, text]) => `<div><span class="lg-ico">${sym}</span><span>${text}</span></div>`).join('')}
         <div class="lg-kgm"><span class="lg-ico"><i class="lg-sq bg-amber"></i></span><span>Yol çalışması / kapalı yol (KGM katmanı)</span></div>
         <div class="lg-note">Yanıp sönen işaretler rotanızın üzerindedir.</div>
@@ -658,7 +660,8 @@
 
     // Rota üzerindeki noktalar + rotadan bağımsız olarak gidiş yönündeki (±30°) kameralar
     const free = cameraNear && heading != null ? cameraNear(ll, 1.2).map(cameraWarning).filter((w) => ahead(w, 30)) : [];
-    const points = warnPoints.concat(free.filter((w) => !warnPoints.some((p) => p.key === w.key)));
+    const community = window.Topluluk ? Topluluk.warnPoints() : [];
+    const points = warnPoints.concat(free.filter((w) => !warnPoints.some((p) => p.key === w.key)), community);
     let next = null;
     points.forEach((pt) => {
       const m = distanceKm(lat, lon, pt.coords[0], pt.coords[1]) * 1000;
@@ -753,6 +756,7 @@
         onPosition(pos.coords.latitude, pos.coords.longitude, `GPS aktif (±${acc} m)`);
         // Hız sınırı eşleştirmesi için yeterince hassas konum gerekir (şebeke konumu kullanılmaz).
         const st = acc <= 60 ? Yol.update(pos.coords.latitude, pos.coords.longitude, kmh) : null;
+        if (window.Topluluk && acc <= 100) Topluluk.update(pos.coords.latitude, pos.coords.longitude);
         Surus.update({ lat: pos.coords.latitude, lon: pos.coords.longitude, speed: st ? st.speed : kmh, limit: st ? st.limit : null, heading: (st && st.heading) ?? heading, next: nextAlert });
       },
       (err) => {
@@ -778,6 +782,7 @@
     nextAlert = null;
     Yol.stop();
     Surus.stop();
+    if (window.Topluluk) Topluluk.stop();
     if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
     const btn = $('btn-drive');
     btn.classList.remove('active');
@@ -872,7 +877,7 @@
     calculateRoute();
   }
 
-  window.CepteRadar = { map, calculateRoute };
+  window.CepteRadar = { map, calculateRoute, SYM, symIcon, toast, speak, locationConsent };
   init();
   setTimeout(() => {
     const s = $('splash-screen');
