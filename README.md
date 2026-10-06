@@ -7,6 +7,8 @@
   <p><b>İller arası yolculukta radar, kontrol noktası, hız koridoru ve yol tehlikelerini önceden gösteren,<br>
   yolda sesli uyarı veren ücretsiz web sitesi ve Android uygulaması.</b></p>
 
+  <img src="assets/og-cover.jpg" alt="Cepte Radar tanıtım görseli" width="100%">
+
 </div>
 
 ---
