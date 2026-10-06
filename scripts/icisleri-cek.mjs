@@ -10,7 +10,7 @@
 //   node scripts/icisleri-cek.mjs --kalkis adana,izmir  -> sadece bu kalkış illeri
 //   node scripts/icisleri-cek.mjs --varis ankara        -> sadece bu varış illeri
 //   node scripts/icisleri-cek.mjs --bekle 8             -> iki sorgu arası en az 8 saniye (varsayılan 6)
-//   node scripts/icisleri-cek.mjs --engel-bekle 60      -> site sorguları engellerse 60 dk bekle (varsayılan 30)
+//   node scripts/icisleri-cek.mjs --engel-bekle 15      -> engel gelince 15 dk'da bir yeniden dene (varsayılan 10)
 //   node scripts/icisleri-cek.mjs --yeniden             -> var olan rotaları da yeniden indir
 //   node scripts/icisleri-cek.mjs --gorunmez            -> tarayıcı penceresini gösterme
 //   node scripts/icisleri-cek.mjs --iki-yon             -> ters yönü kayıtlı rotaları da indir
@@ -45,7 +45,7 @@ const yeniden = !!arg('yeniden', false);
 const gorunmez = !!arg('gorunmez', false);
 const ikiYon = !!arg('iki-yon', false);
 const bekleme = (parseFloat(arg('bekle', '6')) || 6) * 1000;
-const engelBekle = (parseFloat(arg('engel-bekle', '30')) || 30) * 60000;
+const engelBekle = (parseFloat(arg('engel-bekle', '10')) || 10) * 60000;
 
 // Önce büyük şehirler arasındaki rotalar indirilsin.
 const ONCELIK = ['istanbul', 'ankara', 'izmir', 'bursa', 'antalya', 'konya', 'adana', 'gaziantep', 'sanliurfa',
@@ -302,7 +302,8 @@ async function calisan(browser, kuyruk) {
           // Bu rotanın kendisi bozuk olabilir: 3 kez engele denk gelirse atlanır.
           const n = (deneme.get(hedef.id) || 0) + 1;
           deneme.set(hedef.id, n);
-          const ms = engelBekle * Math.min(engelSayisi, 4);
+          // Engel bitti mi diye her seferinde tek sorguyla bakılır; uzun engelde aralık en fazla 3 katına çıkar.
+          const ms = engelBekle * Math.min(Math.ceil(engelSayisi / 3), 3);
           console.warn(`\n  ⏸ ${e.message}. Site sorgu sınırına ulaşılmış olabilir; ${Math.round(ms / 60000)} dk bekleniyor (saat ${saat(ms)}'de devam).`);
           await new Promise((r) => setTimeout(r, ms));
           await yenidenAc().catch(() => {});

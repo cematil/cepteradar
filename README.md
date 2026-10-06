@@ -82,7 +82,7 @@ Varış listesinde **●** işaretli iller, seçilen kalkış ilinden verisi ola
 npm install
 npm run veri:cek                                   # 81 ilin eksik tüm rotaları
 node scripts/icisleri-cek.mjs --kalkis izmir       # sadece bir kalkış ili
-node scripts/icisleri-cek.mjs --bekle 10 --engel-bekle 60   # daha yavaş, engelde 60 dk bekle
+node scripts/icisleri-cek.mjs --bekle 10 --engel-bekle 30   # daha yavaş, engelde 30 dk'da bir dene
 ```
 
 Program İçişleri sayfasını açar, her il çifti için "ROTA OLUŞTUR"a basar ve sitenin cevabını
