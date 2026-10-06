@@ -115,6 +115,15 @@ rota dışında da, gidiş yönünde önde kalan kameralar için uyarılır. Kat
 "Tüm Hız Kameraları" ile Türkiye'deki tüm kameralar görülebilir.
 Veri: © OpenStreetMap katkıda bulunanlar (ODbL); gönüllü verisidir, eksik veya eski olabilir.
 
+## 🚦 Anlık Hız Sınırı, Hemzemin ve Okul Geçitleri
+
+Sürüş modunda konumun çevresindeki (~1,5 km) yollar OpenStreetMap'in Overpass servisinden
+anlık sorgulanır (`js/yol.js`). Bulunulan yolun hız sınırı haritanın sol üstünde tabela olarak
+gösterilir. Sınır %10'dan fazla aşılırsa tabela yanıp söner ve sesli uyarı verilir. Hemzemin geçit
+ve okul geçitlerine 400 m kala uyarılır, hız tabelaları haritada gösterilir.
+Yolda `maxspeed` bilgisi yoksa yönetmelikteki genel sınır "Genel kural" notuyla gösterilir;
+aşım uyarısı sadece kesin bilinen sınırlarda (ve otoyolda) verilir.
+
 ## 📁 Proje Dosya Yapısı
 
 ```struct

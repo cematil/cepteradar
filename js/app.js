@@ -151,6 +151,7 @@
         <div><i class="lg-dot lg-blink" style="background:#0891b2"></i> Kontrol Noktası (il bazında)</div>
         <div><i class="lg-dot lg-blink" style="background:#f97316"></i> Hız Kamerası (gerçek konum)</div>
         <div><i class="lg-sq bg-amber"></i> Yol Çalışması / Kapanma</div>
+        <div><span class="lg-emoji">🚆</span> Hemzemin Geçit / <span class="lg-emoji">🏫</span> Okul Geçidi</div>
         <div><i class="speed-limit-sign sm">82</i> Hız Limiti Tabelası</div>
         <div><i class="lg-dot lg-start"></i> Kalkış / <i class="lg-dot lg-end"></i> Varış</div>
       </div>`;
@@ -461,6 +462,7 @@
   let wakeLock = null;
   let cameraNear = null;
   let lastFix = null;
+  let zoomOnFix = false;
   Veri.loadCameras().then((l) => { cameraNear = Veri.pointIndex(l); });
 
   async function locationByIP() {
@@ -494,7 +496,8 @@
     if (!gpsMarker) {
       gpsMarker = L.marker(ll, { icon: L.divIcon({ className: '', html: '<div class="gps-car-marker"></div>', iconSize: [22, 22], iconAnchor: [11, 11] }), zIndexOffset: 1000 }).addTo(map);
     } else gpsMarker.setLatLng(ll);
-    map.panTo(ll);
+    // Sürüş başladığında ilk konumda sokak seviyesine yaklaş (tabela ve geçitler görünsün).
+    if (zoomOnFix) { zoomOnFix = false; if (map.getZoom() < 14) map.setView(ll, 15); else map.panTo(ll); } else map.panTo(ll);
 
     warnPoints.forEach((pt) => {
       if (!warned.has(pt.key) && distanceKm(lat, lon, pt.coords[0], pt.coords[1]) <= WARN_DISTANCE_KM) {
@@ -561,8 +564,10 @@
         gotGps = true;
         clearTimeout(fallback);
         const acc = Math.round(pos.coords.accuracy);
-        const spd = pos.coords.speed != null ? ` · ${Math.round(pos.coords.speed * 3.6)} km/s` : '';
-        onPosition(pos.coords.latitude, pos.coords.longitude, `GPS aktif (±${acc} m)${spd}`);
+        const kmh = pos.coords.speed != null && pos.coords.speed >= 0 ? pos.coords.speed * 3.6 : null;
+        onPosition(pos.coords.latitude, pos.coords.longitude, `GPS aktif (±${acc} m)`);
+        // Hız sınırı eşleştirmesi için yeterince hassas konum gerekir (şebeke konumu kullanılmaz).
+        if (acc <= 60) Yol.update(pos.coords.latitude, pos.coords.longitude, kmh);
       },
       (err) => {
         if (err.code === err.PERMISSION_DENIED) {
@@ -572,6 +577,8 @@
       },
       { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
     );
+    Yol.start({ map, speak, toast });
+    zoomOnFix = true;
     speak('Sürüş modu başlatıldı. İyi yolculuklar.');
   }
 
@@ -580,6 +587,7 @@
     watchId = null;
     if (gpsMarker) { map.removeLayer(gpsMarker); gpsMarker = null; }
     lastFix = null;
+    Yol.stop();
     if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
     const btn = $('btn-drive');
     btn.classList.remove('active');

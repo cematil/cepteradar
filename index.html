@@ -126,6 +126,13 @@
                 <div id="map"></div>
                 <button type="button" class="drive-btn" id="btn-drive">▶ Sürüş Modu</button>
                 <div class="gps-status" id="gps-status-text">Konum kapalı</div>
+                <div class="limit-box hidden" id="limit-box" aria-live="polite">
+                    <div class="limit-sign" id="limit-sign"><span id="limit-val">–</span></div>
+                    <div class="limit-meta">
+                        <span><b id="cur-speed">–</b> km/s</span>
+                        <small id="limit-note">Yol aranıyor…</small>
+                    </div>
+                </div>
             </div>
 
             <a href="main.html" class="card link-card">
@@ -140,7 +147,7 @@
             <div class="tips">
                 <div class="tip"><span>🖥️</span><div><b>Tam Ekran:</b> Haritanın sağ üstündeki butonla haritayı büyütün, <code>ESC</code> veya tekrar dokunarak çıkın.</div></div>
                 <div class="tip"><span>👁️</span><div><b>Yol Çalışmaları:</b> Katman menüsünden <em>"KGM Yol Çalışmaları"</em> kutucuğunu açıp kapatabilirsiniz.</div></div>
-                <div class="tip"><span>🔊</span><div><b>Sürüş Modu:</b> Hız kameralarına, hız koridorlarına, radar/kontrol bölgelerine ve yol çalışmalarına 2 km kala sesli uyarı verir.</div></div>
+                <div class="tip"><span>🔊</span><div><b>Sürüş Modu:</b> Hız kameralarına, hız koridorlarına, radar/kontrol bölgelerine ve yol çalışmalarına 2 km kala sesli uyarı verir; bulunduğunuz yolun hız sınırını gösterir, aşınca ve hemzemin/okul geçitlerine yaklaşınca uyarır.</div></div>
             </div>
         </section>
 
@@ -234,6 +241,7 @@
     <script src="js/koruma.js"></script>
     <script src="js/iller.js"></script>
     <script src="js/veri.js"></script>
+    <script src="js/yol.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
