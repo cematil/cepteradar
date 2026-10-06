@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#2f55d4">
+    <title>Cepte Radar</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="assets/icon-192.png">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+    <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+    <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="css/mobil.css">
+    <script>
+        // Rota verileri bu adresten güncel alınır (ulaşılamazsa uygulamanın içindeki kopya kullanılır).
+        window.CEPTE_VERI_URL = 'https://raw.githubusercontent.com/cematil/cepteradar/claude/blissful-galileo-yaeysy/iller_kucuk/';
+    </script>
+</head>
+<body class="mobil">
+
+    <div id="splash-screen" aria-hidden="true">
+        <img src="assets/logo.svg" alt="Cepte Radar" width="440" height="440">
+    </div>
+
+    <!-- 1. HOŞ GELDİNİZ -->
+    <section class="scr scr-welcome" id="scr-welcome" aria-label="Hoş geldiniz">
+        <div class="w-art" aria-hidden="true">
+            <svg viewBox="0 0 360 380" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+                <path d="M300 -20 C 380 40, 330 110, 260 90" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none"/>
+                <path d="M-20 300 C 40 250, 30 330, 90 340" stroke="rgba(255,255,255,.25)" stroke-width="2" fill="none"/>
+                <g fill="#fff">
+                    <path d="M120 40 l5 12 12 5 -12 5 -5 12 -5 -12 -12 -5 12 -5z"/>
+                    <path d="M290 150 l4 9 9 4 -9 4 -4 9 -4 -9 -9 -4 9 -4z"/>
+                    <path d="M40 230 l4 9 9 4 -9 4 -4 9 -4 -9 -9 -4 9 -4z"/>
+                    <path d="M260 250 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z"/>
+                </g>
+                <path d="M78 92 C 40 150, 210 120, 170 185 S 40 230, 90 290 S 220 300, 245 250"
+                      stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-dasharray="1 14" fill="none"/>
+                <path d="M78 92 C 40 150, 210 120, 170 185 S 40 230, 90 290 S 220 300, 245 250"
+                      stroke="rgba(255,255,255,.9)" stroke-width="3" fill="none"/>
+                <g transform="translate(78 92)">
+                    <path d="M0 0 C -18 -24, -22 -34, -22 -42 a22 22 0 1 1 44 0 c0 8 -4 18 -22 42z" fill="#f97316"/>
+                    <circle cx="0" cy="-42" r="8" fill="#fff"/>
+                </g>
+                <g transform="translate(250 245)">
+                    <ellipse cx="0" cy="8" rx="26" ry="7" fill="rgba(255,255,255,.85)"/>
+                    <path d="M0 0 C -32 -40, -40 -58, -40 -72 a40 40 0 1 1 80 0 c0 14 -8 32 -40 72z" fill="#fff"/>
+                    <circle cx="0" cy="-72" r="15" fill="#2f55d4"/>
+                    <circle cx="0" cy="-72" r="6" fill="#ef4444"/>
+                </g>
+            </svg>
+        </div>
+        <div class="w-text">
+            <h1>Cepte Radar'a<br><b>Hoş Geldiniz</b></h1>
+            <p>Radar, kontrol noktası ve hız koridorlarını yola çıkmadan görün, yolda 2 km önceden sesli uyarı alın.</p>
+            <button type="button" class="btn-orange" id="w-start">Başla</button>
+            <button type="button" class="btn-white" id="w-how">Nasıl Çalışır?</button>
+        </div>
+        <i class="blob blob-1" aria-hidden="true"></i>
+        <i class="blob blob-2" aria-hidden="true"></i>
+    </section>
+
+    <!-- 2. ANA SAYFA -->
+    <section class="scr scr-home" id="scr-home" aria-label="Ana sayfa">
+        <header class="h-top">
+            <img class="avatar" src="assets/icon-192.png" alt="" width="44" height="44">
+            <div class="h-hello"><small>Merhaba 👋</small><b>İyi yolculuklar!</b></div>
+            <button type="button" class="icon-btn-light" data-open-legal aria-label="Yasal bilgiler">☰</button>
+        </header>
+
+        <div class="h-card">
+            <div class="h-field">
+                <label for="start-city">Nereden</label>
+                <select id="start-city"></select>
+            </div>
+            <div class="h-sep"></div>
+            <div class="h-field">
+                <label for="end-city">Nereye</label>
+                <select id="end-city"></select>
+            </div>
+            <button type="button" class="h-swap" id="btn-swap" aria-label="Kalkış ve varışı değiştir">⇅</button>
+        </div>
+
+        <div class="tiles">
+            <button type="button" class="tile tile-yellow" id="t-route"><span>🗺️</span>Rota Oluştur</button>
+            <button type="button" class="tile" id="t-drive"><span>🚗</span>Sürüş Modu</button>
+            <button type="button" class="tile" id="btn-locate"><span>📡</span>Konumum</button>
+            <a class="tile" href="main.html"><span>🚧</span>Yol Durumu</a>
+        </div>
+
+        <div class="h-recent">
+            <h3>Son Rotalar</h3>
+            <div id="recent-routes" class="recent"></div>
+            <p class="muted small h-empty">Henüz rota aramadınız.</p>
+        </div>
+
+        <button type="button" id="btn-submit" hidden>ROTA OLUŞTUR</button>
+    </section>
+
+    <!-- 3. HARİTA -->
+    <section class="scr scr-map" id="scr-map" aria-label="Harita">
+        <div id="panel-map">
+            <div class="map-card" id="map-container">
+                <div id="map"></div>
+                <div class="gps-status" id="gps-status-text">Konum kapalı</div>
+                <div class="limit-box hidden" id="limit-box" aria-live="polite">
+                    <div class="limit-sign" id="limit-sign"><span id="limit-val">–</span></div>
+                    <div class="limit-meta">
+                        <span><b id="cur-speed">–</b> km/s</span>
+                        <small id="limit-note">Yol aranıyor…</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="m-top">
+            <button type="button" class="round-btn" data-go="home" aria-label="Geri">‹</button>
+            <button type="button" class="m-search" data-go="home"><span id="route-title">Rota seçilmedi</span></button>
+            <button type="button" class="round-btn orange" data-go="home" aria-label="Yeni rota">⌕</button>
+        </div>
+
+        <div class="sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-stats">
+                <div><i class="ic ic-radar"></i><b id="stat-radar">–</b><small>Radar</small></div>
+                <div><i class="ic ic-kontrol"></i><b id="stat-kontrol">–</b><small>Kontrol</small></div>
+                <div><i class="ic ic-koridor"></i><b id="stat-koridor">–</b><small>Koridor</small></div>
+                <div><i class="ic ic-kamera"></i><b id="stat-kamera">–</b><small>Kamera</small></div>
+            </div>
+            <div class="sheet-meta">
+                <div class="risk-gauge mini" id="risk-gauge" style="--p:0"><span id="risk-score">%0</span><small id="risk-badge">—</small></div>
+                <div class="sheet-info">
+                    <b id="route-meta">Rota hesaplanmadı</b>
+                    <div id="data-status" class="notice hidden" role="status"></div>
+                </div>
+            </div>
+            <button type="button" class="btn-orange" id="btn-drive">▶ Sürüş Modu</button>
+            <button type="button" class="btn-link" data-go="details">Tüm uyarıları gör →</button>
+        </div>
+    </section>
+
+    <!-- 4. UYARILAR / DETAY -->
+    <section class="scr scr-details" id="scr-details" aria-label="Güzergah detayları">
+        <header class="d-top">
+            <button type="button" class="round-btn light" data-go="map" aria-label="Haritaya dön">‹</button>
+            <h2>Güzergah Detayları</h2>
+        </header>
+        <div class="d-body">
+            <div class="d-card">
+                <h3>🚨 Güzergah Uyarıları <span id="alerts-count"></span></h3>
+                <p class="muted small" id="alerts-status"></p>
+                <ol class="alert-list" id="route-alerts"><li class="muted small">Rota seçilmedi.</li></ol>
+            </div>
+            <div class="d-card">
+                <h3>🌤️ Hava Durumu</h3>
+                <div class="weather">
+                    <div class="weather-box">
+                        <div class="eyebrow" id="weather-start-title">Kalkış</div>
+                        <div class="weather-temp" id="weather-start-temp">--°C</div>
+                        <div class="weather-cond" id="weather-start-cond">--</div>
+                    </div>
+                    <div class="weather-box">
+                        <div class="eyebrow" id="weather-end-title">Varış</div>
+                        <div class="weather-temp" id="weather-end-temp">--°C</div>
+                        <div class="weather-cond" id="weather-end-cond">--</div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-card">
+                <h3>⚡ Hız Koridorları</h3>
+                <ul class="corridor-list" id="speed-corridors"><li class="muted small">Rota seçilmedi.</li></ul>
+            </div>
+            <div class="d-card">
+                <h3>🏙️ Geçilen İller</h3>
+                <div id="city-breakdown" class="breakdown"><p class="muted small">Rota seçilmedi.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ALT MENÜ -->
+    <nav class="tabbar" id="tabbar" aria-label="Menü">
+        <button type="button" data-go="home" class="on"><span>🏠</span>Ana Sayfa</button>
+        <button type="button" data-go="map"><span>🗺️</span>Harita</button>
+        <button type="button" class="tab-plus" id="tab-plus" aria-label="Rota oluştur">+</button>
+        <button type="button" data-go="details"><span>🚨</span>Uyarılar</button>
+        <button type="button" data-open-legal><span>⚖️</span>Yasal</button>
+    </nav>
+
+    <!-- NASIL ÇALIŞIR -->
+    <div id="how-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="how-title">
+        <div class="modal-box how-box">
+            <h2 id="how-title">Nasıl Çalışır?</h2>
+            <ol class="how-list">
+                <li><b>Nereden – Nereye</b> illerini seçin, <b>Rota Oluştur</b>'a dokunun.</li>
+                <li>Haritada radar, kontrol noktası, hız koridoru, kamera ve tehlikeli noktaları görün. İşaretlerin anlamı haritadaki <b>Lejant</b>'tadır.</li>
+                <li><b>Sürüş Modu</b>'nu açın: bulunduğunuz yolun hız sınırını gösterir, kameralara ve koridorlara 2 km, geçitlere 400 m kala sesli uyarır.</li>
+                <li><b>Uyarılar</b> sekmesinde güzergahtaki tüm noktalar kilometre sırasıyla listelenir.</li>
+            </ol>
+            <p class="muted small">Veriler kamuya açık kaynaklardan derlenir ve internet bağlantısıyla güncellenir; eksik veya gecikmeli olabilir. Trafik kurallarına uymak sürücünün sorumluluğundadır.</p>
+            <button type="button" class="btn-orange" id="how-close">Anladım</button>
+        </div>
+    </div>
+
+    <div id="legal-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="legal-title">
+        <div class="modal-box">
+            <div class="modal-head">
+                <h2 id="legal-title"><span class="c-amber">⚖️</span> Yasal Sözleşme, Muafiyet ve Kullanım Şartları</h2>
+                <button type="button" class="icon-btn" data-close-legal aria-label="Kapat">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="notice notice-red">
+                    ⚠️ YASAL BİLDİRİM VE ZORUNLU KABUL: Bu web uygulamasını, servislerini ve içeriğini kullanarak; aşağıda açıklanan tüm şartları, muafiyet hükümlerini, yasal sorumsuzluk kayıtlarını ve risk beyanlarını hiçbir kısıtlama, itiraz veya şart olmaksızın kabul etmiş sayılırsınız. Şartları kabul etmiyorsanız lütfen uygulamayı derhal kapatınız.
+                </div>
+                <h3>1. Bilgilendirme Amacı ve Trafik Güvenliği Vurgusu</h3>
+                <p>Bu platform, sadece karayollarındaki hız limitleri, radar sistemleri, kontrol noktaları ve meteorolojik durumlar hakkında genel sürücü farkındalığını artırmak amacıyla geliştirilmiş istatistiki ve görsel bir rehberdir. Uygulama hiçbir şekilde sürücüleri hız yapmaya, kuralları ihlal etmeye veya güvenlik denetimlerinden kaçmaya teşvik etmez. Sürücü, 2918 sayılı Karayolları Trafik Kanunu ve ilgili tüm idari düzenlemelere uymakla yükümlüdür.</p>
+                <h3>2. Veri Garanti Edilemezliği ve Bilgi Doğruluğu Reddi</h3>
+                <p>Haritada ve panel üzerinde gösterilen radar lokasyonları, denetim noktaları, hava durumu verileri ve güzergah risk skorları kamuya açık kaynaklardan, üçüncü taraf veritabanlarından veya tahmini algoritmalardan elde edilmektedir. Verilerin anlık doğruluğu, güncelliği veya eksiksizliği <strong>garanti edilmez</strong>. Emniyet ve jandarma birimlerinin gezici denetimleri veya anlık radar konum değişiklikleri sistemde yer almayabilir.</p>
+                <h3>3. İdari, Trafik Cezaları ve Cezai İşlemlerden Tam Sorumsuzluk</h3>
+                <p>Sürücünün uygulama üzerindeki bilgilere dayanarak hareket etmesi neticesinde karşılaşabileceği hiçbir idari para cezası, ehliyete el konulması, araç bağlanması veya sair yasal müeyyideden platform yöneticileri, yazılımcıları, sahipleri veya hizmet sağlayıcıları <strong>hiçbir koşulda hukuki veya mali olarak sorumlu tutulamaz</strong>. Tüm cezai sorumluluk münhasıran araç sürücüsüne aittir.</p>
+                <h3>4. Trafik Kazaları, Maddi ve Manevi Zararların Reddi</h3>
+                <p>Canlı GPS konum takibi veya sesli uyarı özellikleri sürüş esnasında sürücünün dikkatini dağıtmamalıdır. Uygulamanın kullanımı sırasında oluşabilecek trafik kazaları, yaralanmalar, can kayıpları, araç hasarları veya üçüncü şahıslara verilen maddi/manevi zararlardan uygulama yetkilileri tamamen muaf tutulmuştur.</p>
+                <h3>5. Kesintisizlik ve Teknik Hizmet Garanti Edilmemesi</h3>
+                <p>Hizmetin kesintisiz, hatasız veya güvenli bir şekilde çalışacağı garanti edilmez. İnternet bağlantı kopuklukları, GPS sinyal kayıpları, sunucu arızaları veya API servis güncellemelerinden kaynaklı aksaklıklardan doğacak olumsuzluklar kabul edilmemektedir.</p>
+                <h3>6. Uygulama İçi Fikri Mülkiyet ve Kullanım Hakları</h3>
+                <p>Bu uygulamanın kod yapısı, tasarımı, arayüzü ve koruma sistemleri telif haklarına tabidir. Uygulama içeriğinin kopyalanması, tersine mühendislik (reverse engineering) işlemlerine tabi tutulması veya ticari amaçla izinsiz kullanılması yasaktır.</p>
+            </div>
+            <div class="modal-foot">
+                <span class="muted small"><a href="gizlilik.html">Gizlilik Politikası</a> · Tüm Hakları Saklıdır © 2026</span>
+                <button type="button" class="btn btn-primary" data-close-legal>Okudum, Anladım ve Kabul Ediyorum</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
+
+    <script src="vendor/leaflet/leaflet.js"></script>
+    <script src="vendor/esri-leaflet.js"></script>
+    <script src="js/koruma.js"></script>
+    <script src="js/iller.js"></script>
+    <script src="js/veri.js"></script>
+    <script src="js/yol.js"></script>
+    <script src="js/surus.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/mobil.js"></script>
+</body>
+</html>

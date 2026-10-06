@@ -1,15 +1,19 @@
 {
-  "name": "Rota Denetim & Radar Sistemi",
-  "short_name": "RotaRadar",
+  "name": "Cepte Radar - Radar, Hız Koridoru ve Kontrol Noktaları",
+  "short_name": "Cepte Radar",
+  "description": "81 il arası radar, kontrol noktası ve hız koridoru sorgulama.",
+  "lang": "tr",
+  "id": "./index.html",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#0b0f17",
-  "theme_color": "#121824",
+  "orientation": "portrait",
+  "background_color": "#0b1120",
+  "theme_color": "#0b1120",
+  "categories": ["navigation", "travel"],
   "icons": [
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/854/854878.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "assets/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

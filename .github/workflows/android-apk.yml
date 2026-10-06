@@ -1,0 +1,43 @@
+# Her push'ta Cepte Radar Android APK'sını üretir.
+# APK, Actions sekmesindeki çalıştırmanın "Artifacts" bölümünden "cepteradar-apk" adıyla indirilir.
+name: Android APK
+
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Bağımlılıkları kur
+        run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+      - name: Android projesini hazırla
+        run: npm run android:hazirla
+
+      # ubuntu-latest çalıştırıcısında Android SDK hazır kurulu gelir (ANDROID_HOME).
+      - name: APK derle
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cepteradar-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
