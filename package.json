@@ -1,16 +1,29 @@
 {
-  "name": "radar",
+  "name": "cepteradar",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Cepte Radar - 81 il arası radar, kontrol noktası ve hız koridoru sorgulama (web + Android)",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "veri:birlestir": "node scripts/veri-birlestir.mjs",
+    "ikon": "node scripts/ikon-uret.mjs",
+    "www": "node scripts/www-hazirla.mjs",
+    "android:hazirla": "node scripts/www-hazirla.mjs && (test -d android || npx cap add android) && node scripts/android-hazirla.mjs && npx cap sync android",
+    "android:apk": "npm run android:hazirla && cd android && ./gradlew assembleDebug"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "express": "^5.2.1"
+    "@capacitor/android": "^7.6.9",
+    "@capacitor/core": "^7.6.9",
+    "esri-leaflet": "^3.0.12",
+    "express": "^5.2.1",
+    "leaflet": "^1.9.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.6.9",
+    "playwright": "^1.56.1"
   }
 }

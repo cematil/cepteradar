@@ -59,6 +59,32 @@ Karayolları Genel Müdürlüğü (KGM) canlı verileriyle Türkiye genelindeki 
 
 ---
 
+## 📱 Web Sitesi + Android Uygulaması
+
+Uygulama artık tamamen tarayıcı tarafında çalışır (ayrı bir API sunucusu gerekmez):
+rota OSRM'den, hava durumu Open-Meteo'dan, radar/kontrol/koridor sayıları `iller_kucuk/*.json` dosyalarından okunur.
+
+- **Web:** Klasörü herhangi bir statik barındırmaya (GitHub Pages, Netlify, kendi sunucunuz) yükleyin ya da `npm start` ile `http://localhost:8000` adresinde açın.
+- **Telefona kurulum (PWA):** Siteyi Chrome'da açıp "Ana ekrana ekle" deyin; uygulama gibi tam ekran açılır.
+- **APK:** Her push'ta GitHub Actions (`.github/workflows/android-apk.yml`) APK üretir. Actions → son çalıştırma → *Artifacts* → `cepteradar-apk`.
+  Yerelde derlemek için Android SDK + JDK 21 kurulu olmalı: `npm ci && npm run android:apk`.
+
+## 🗂️ 81 İl Verisi (İçişleri Bakanlığı)
+
+Kaynak: [İller Arası Radar ve Kontrol Noktası Uygulama Sayıları](https://www.icisleri.gov.tr/iller-arasi-radar-ve-kontrol-noktasi-uygulama-sayilari)
+
+Arayüzde 81 ilin tamamı seçilebilir. Bir rota için veri yoksa harita ve hava durumu yine gösterilir, radar sayıları için "veri yok" uyarısı çıkar.
+Varış listesinde **●** işaretli iller, seçilen kalkış ilinden verisi olan illerdir. Bir yönün verisi yoksa ters yönün verisi kullanılır.
+
+Yeni indirilen rota dosyalarını eklemek için:
+
+```bash
+node scripts/veri-birlestir.mjs indirilenler/     # klasördeki tüm .json'ları birleştirir
+```
+
+Her dosya tek bir rota nesnesi (`{kalkis_il, varis_il, radar_sayisi, ...}`) veya bunların dizisi olabilir.
+Kayıtlar kalkış iline göre `iller_kucuk/<il>.json` dosyalarına eklenir, mevcut kayıtlar korunur ve `iller_kucuk/index.json` yeniden üretilir.
+
 ## 📁 Proje Dosya Yapısı
 
 ```struct
@@ -66,11 +92,15 @@ cepteradar/
 ├── assets/
 │   ├── logo.svg            # Cepte Radar Ana Logosu
 │   └── logo-work.svg       # KGM Yol Bakım & Onarım Logosu
-├── iller/                  # Ham İl/İlçe Rota JSON Verileri
-├── iller_kucuk/            # Sıkıştırılmış & Optimize Edilmiş JSON Verileri
+├── iller_kucuk/            # İl bazında rota JSON verileri + index.json (veri dizini)
+├── css/app.css             # Mobil öncelikli arayüz stilleri
+├── js/                     # app.js (arayüz), veri.js (veri katmanı), iller.js (81 il), koruma.js
+├── vendor/                 # Leaflet & Esri Leaflet (çevrimdışı/APK için yerel kopya)
+├── scripts/                # veri-birlestir, ikon-uret, www-hazirla, android-hazirla
+├── capacitor.config.json   # Android (APK) paket ayarları
 ├── index.html              # Cepte Radar Ana Sorgulama & Rota Sayfası
 ├── main.html               # KGM Canlı Yol Bakım Onarım & Kapalı Yollar Haritası
 ├── manifest.json           # PWA (Progressive Web App) Desteği
 ├── sw.js                   # Service Worker Servisi
-├── server.js               # Sunucu Başlatma Scripti
+├── server.js               # Yerel statik sunucu (npm start)
 └── README.md               # Proje Dokümantasyonu

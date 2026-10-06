@@ -1,0 +1,8 @@
+{
+  "appId": "com.cepteradar.app",
+  "appName": "Cepte Radar",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#0b1120"
+  }
+}

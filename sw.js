@@ -1,13 +1,43 @@
+// Cepte Radar servis çalışanı: uygulama kabuğunu önbelleğe alır, rota verilerini
+// önce ağdan dener (güncel olsun diye), ağ yoksa önbellekteki son sürümü kullanır.
+const VERSION = 'cepteradar-v2';
+const SHELL = [
+  './', './index.html', './main.html', './manifest.json',
+  './css/app.css', './js/app.js', './js/veri.js', './js/iller.js', './js/koruma.js',
+  './vendor/leaflet/leaflet.js', './vendor/leaflet/leaflet.css', './vendor/esri-leaflet.js',
+  './assets/logo.svg', './assets/logo-work.svg', './assets/icon-192.png', './assets/icon-512.png',
+  './iller_kucuk/index.json',
+];
+
 self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+});
+
+self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.open('radar-app-v1').then((cache) => {
-      return cache.addAll(['./', './index.html']);
-    })
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', (e) => {
-  e.respondWith(
-    caches.match(e.request).then((response) => response || fetch(e.request))
-  );
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return; // harita döşemeleri, API'ler: doğrudan ağ
+
+  const isData = url.pathname.includes('/iller_kucuk/') || req.mode === 'navigate';
+  if (isData) {
+    // Ağ öncelikli
+    e.respondWith(
+      fetch(req).then((res) => {
+        if (res.ok) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(req, copy)); }
+        return res;
+      }).catch(() => caches.match(req).then((r) => r || caches.match('./index.html')))
+    );
+  } else {
+    // Önbellek öncelikli
+    e.respondWith(caches.match(req).then((r) => r || fetch(req)));
+  }
 });
