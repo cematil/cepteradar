@@ -1,9 +1,9 @@
 // Cepte Radar servis çalışanı: tüm dosyaları önce ağdan dener (güncellemeler hemen
 // görünsün diye), ağ yoksa önbellekteki son sürümü kullanır.
-const VERSION = 'cepteradar-v12';
+const VERSION = 'cepteradar-v13';
 const SHELL = [
-  './', './index.html', './main.html', './manifest.json',
-  './css/app.css', './js/app.js', './js/veri.js', './js/yol.js', './js/iller.js', './js/koruma.js',
+  './', './index.html', './app.html', './main.html', './manifest.json',
+  './css/app.css', './css/mobil.css', './js/mobil.js', './js/app.js', './js/veri.js', './js/yol.js', './js/iller.js', './js/koruma.js',
   './vendor/leaflet/leaflet.js', './vendor/leaflet/leaflet.css', './vendor/esri-leaflet.js',
   './assets/logo.svg', './assets/logo-work.svg', './assets/icon-192.png', './assets/icon-512.png',
   './iller_kucuk/index.json',

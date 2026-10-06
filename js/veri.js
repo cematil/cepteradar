@@ -26,10 +26,19 @@
     }
   }
 
+  // Veri dosyası: window.CEPTE_VERI_URL tanımlıysa (mobil uygulama) önce oradan, güncel hali alınır;
+  // ulaşılamazsa uygulamanın içindeki kopya kullanılır.
+  function fetchData(name, timeoutMs) {
+    const local = () => fetchJson(`${DATA_DIR}/${name}`, timeoutMs);
+    const remote = window.CEPTE_VERI_URL;
+    if (!remote) return local();
+    return fetchJson(`${remote}${name}`, 8000).catch(local);
+  }
+
   // { kalkisId: [varisId, ...] } — hangi rotaların verisi olduğunu gösterir.
   function loadIndex() {
     if (!indexPromise) {
-      indexPromise = fetchJson(`${DATA_DIR}/index.json`).catch(() => ({}));
+      indexPromise = fetchData('index.json').catch(() => ({}));
     }
     return indexPromise;
   }
@@ -43,7 +52,7 @@
 
   async function loadCity(id) {
     if (!cityCache.has(id)) {
-      cityCache.set(id, fetchJson(`${DATA_DIR}/${id}.json`).then(asList).catch(() => []));
+      cityCache.set(id, fetchData(`${id}.json`).then(asList).catch(() => []));
     }
     return cityCache.get(id);
   }
@@ -119,14 +128,14 @@
   // ------------------------------------------------------------ GÜZERGAH ANALİZİ
   let corridorsPromise = null;
   function loadCorridors() {
-    if (!corridorsPromise) corridorsPromise = fetchJson(`${DATA_DIR}/koridorlar.json`).then(asList).catch(() => []);
+    if (!corridorsPromise) corridorsPromise = fetchData('koridorlar.json').then(asList).catch(() => []);
     return corridorsPromise;
   }
 
   // İl bazında denetim özeti (scripts/lib-veri.mjs üretir): rota verisi olmayan güzergahlarda tahmin için
   let ozetPromise = null;
   function loadProvinceSummary() {
-    if (!ozetPromise) ozetPromise = fetchJson(`${DATA_DIR}/il_ozet.json`).catch(() => ({}));
+    if (!ozetPromise) ozetPromise = fetchData('il_ozet.json').catch(() => ({}));
     return ozetPromise;
   }
 
@@ -134,7 +143,7 @@
   let camerasPromise = null;
   function loadCameras() {
     if (!camerasPromise) {
-      camerasPromise = fetchJson(`${DATA_DIR}/osm_radarlar.json`).then(asList)
+      camerasPromise = fetchData('osm_radarlar.json').then(asList)
         .then((l) => l.filter((c) => Number.isFinite(c.lat) && Number.isFinite(c.lon)))
         .catch(() => []);
     }

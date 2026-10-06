@@ -82,7 +82,13 @@ Sağ üstteki katman düğmesinden:
 | 🚆 / 🏫 / ⚠️ | Hemzemin geçit / Okul geçidi / Tehlike (heyelan, viraj, hayvan geçidi…) |
 | Yeşil / Kırmızı nokta | Kalkış / Varış |
 
-### 5. Telefona kurulum
+### 5. Mobil uygulama arayüzü
+Android uygulaması (ve `app.html`) telefona özel bir arayüzle açılır: **Hoş geldiniz** ekranı, rota formu ve
+kutucuklu **ana sayfa**, alt kartlı tam ekran **harita** ve **Uyarılar** ekranı. Rota verileri uygulamanın içinde de
+bulunur, ama internet varken GitHub'daki güncel `iller_kucuk/` dosyalarından alınır. Yeni rotalar eklendiğinde
+uygulamayı güncellemek gerekmez (adres `app.html` içindeki `CEPTE_VERI_URL`).
+
+### 6. Telefona kurulum
 - **Android uygulaması (APK):** GitHub → *Actions* → son başarılı "Android APK" çalışması → *Artifacts* → `cepteradar-apk`.
   İndirip telefonda açın (bilinmeyen kaynaklardan yüklemeye izin vermeniz gerekebilir).
 - **Ana ekrana ekleme (iPhone ve Android):** Siteyi tarayıcıda açıp *Ana ekrana ekle* deyin; uygulama gibi tam ekran açılır.

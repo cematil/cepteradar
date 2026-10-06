@@ -592,6 +592,7 @@
       }
 
       map.fitBounds(line.getBounds(), { padding: [30, 30] });
+      document.dispatchEvent(new CustomEvent('cepteradar:rota', { detail: { bounds: line.getBounds() } }));
       setTimeout(() => map.invalidateSize(), 150);
       rememberRoute(from.id, to.id);
       renderAlerts();
@@ -810,7 +811,7 @@
     e.preventDefault();
     document.querySelector(a.getAttribute('href')).scrollIntoView({ behavior: 'smooth', block: 'start' });
   }));
-  if ('IntersectionObserver' in window) {
+  if ('IntersectionObserver' in window && navLinks.length) {
     const io = new IntersectionObserver((entries) => {
       entries.forEach((en) => {
         if (!en.isIntersecting) return;
@@ -836,6 +837,7 @@
     calculateRoute();
   }
 
+  window.CepteRadar = { map, calculateRoute };
   init();
   setTimeout(() => {
     const s = $('splash-screen');
