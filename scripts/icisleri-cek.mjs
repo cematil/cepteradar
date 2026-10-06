@@ -73,10 +73,15 @@ const adim = (m) => { if (ilkAdim) console.log(`  · ${m}`); };
 
 // Sorun olursa ekran görüntüsü, sayfa kaynağı ve seçim kutusu özetini hata-raporu/ klasörüne yazar.
 async function taniKaydet(page, neden) {
+  // Tanı kaydı programı asla kilitlememeli: en fazla 20 sn
+  return Promise.race([taniKaydetIc(page, neden), new Promise((r) => setTimeout(r, 20000))]);
+}
+
+async function taniKaydetIc(page, neden) {
   try {
     const dir = path.join(process.cwd(), 'hata-raporu');
     fs.mkdirSync(dir, { recursive: true });
-    await page.screenshot({ path: path.join(dir, 'ekran.png'), fullPage: true }).catch(() => {});
+    await page.screenshot({ path: path.join(dir, 'ekran.png'), timeout: 10000 }).catch(() => {});
     const ozet = [];
     for (const f of page.frames()) {
       const bilgi = await f.evaluate(() => ({
@@ -203,7 +208,7 @@ async function rotaCek(page, form, a, b) {
   await ilSec(page, frame, kutular[2], kutular[3], b);
   const cevap = page.waitForResponse((r) => /CreateRoute/i.test(r.url()), { timeout: 90000 });
   await butonaBas(page, frame);
-  adim('"ROTA OLUŞTUR"a basıldı, cevap bekleniyor…');
+  adim('"ROTA OLUŞTUR"a basıldı, cevap bekleniyor (en fazla 90 sn)…');
   const res = await cevap.catch(() => { throw new EngelHatasi('Site 90 saniyede rota cevabı vermedi'); });
   if ([403, 429, 503].includes(res.status())) throw new EngelHatasi(`Site sorguyu reddetti (HTTP ${res.status()})`);
   const json = await res.json().catch(() => null);
