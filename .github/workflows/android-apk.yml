@@ -23,8 +23,6 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - uses: android-actions/setup-android@v3
-
       - name: Bağımlılıkları kur
         run: npm ci
         env:
@@ -33,6 +31,7 @@ jobs:
       - name: Android projesini hazırla
         run: npm run android:hazirla
 
+      # ubuntu-latest çalıştırıcısında Android SDK hazır kurulu gelir (ANDROID_HOME).
       - name: APK derle
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
