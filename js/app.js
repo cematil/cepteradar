@@ -369,19 +369,25 @@
           const at = (f) => dense[Math.round(s.first + (s.last - s.first) * f)];
           const note = '<br><small>Konum il bazında yaklaşıktır; kesin denetim noktası değildir.</small>';
           if (r > 0) {
-            addLayer(L.marker(at(0.4), { icon: L.divIcon({ className: '', html: `<div class="blink-marker radar"><span>${r}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 500 }))
+            const pos = at(0.4);
+            addLayer(L.marker(pos, { icon: L.divIcon({ className: '', html: `<div class="blink-marker radar"><span>${r}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 500 }))
               .bindPopup(`<b>📷 ${esc(il.ad)} — ${r} radarlı denetim</b>${note}`);
+            warnPoints.push({
+              key: `r${i}`, coords: pos,
+              say: `Dikkat! ${WARN_DISTANCE_KM} kilometre sonra radar denetim bölgesi. ${il.ad} ilinde ${r} radarlı denetim noktası bulunuyor.`,
+              text: `📷 ${WARN_DISTANCE_KM} km sonra radar bölgesi (${il.ad}: ${r})`,
+            });
           }
           if (rs > 0) {
-            addLayer(L.marker(at(0.6), { icon: L.divIcon({ className: '', html: `<div class="blink-marker kontrol"><span>${rs}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 500 }))
+            const pos = at(0.6);
+            addLayer(L.marker(pos, { icon: L.divIcon({ className: '', html: `<div class="blink-marker kontrol"><span>${rs}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 500 }))
               .bindPopup(`<b>👮 ${esc(il.ad)} — ${rs} radarsız kontrol noktası</b>${note}`);
+            warnPoints.push({
+              key: `c${i}`, coords: pos,
+              say: `Dikkat! ${WARN_DISTANCE_KM} kilometre sonra trafik kontrol noktası bölgesi. ${il.ad} ilinde ${rs} kontrol noktası bulunuyor.`,
+              text: `👮 ${WARN_DISTANCE_KM} km sonra kontrol noktası bölgesi (${il.ad}: ${rs})`,
+            });
           }
-          const parts = [r && `${r} radarlı`, rs && `${rs} radarsız`].filter(Boolean).join(', ');
-          warnPoints.push({
-            key: `il${i}`, coords: dense[s.first],
-            say: `Dikkat! ${WARN_DISTANCE_KM} kilometre sonra ${il.ad} il sınırları. Güzergahta ${parts} denetim noktası bulunuyor.`,
-            text: `📷 ${il.ad}: ${parts} denetim noktası`,
-          });
         });
       }
 
