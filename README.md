@@ -82,11 +82,13 @@ Varış listesinde **●** işaretli iller, seçilen kalkış ilinden verisi ola
 npm install
 npm run veri:cek                                   # 81 ilin eksik tüm rotaları
 node scripts/icisleri-cek.mjs --kalkis izmir       # sadece bir kalkış ili
-node scripts/icisleri-cek.mjs --paralel 3          # aynı anda 3 sekme
+node scripts/icisleri-cek.mjs --bekle 10 --engel-bekle 60   # daha yavaş, engelde 60 dk bekle
 ```
 
 Program İçişleri sayfasını açar, her il çifti için "ROTA OLUŞTUR"a basar ve sitenin cevabını
-`iller_kucuk/` klasörüne kaydeder. Ctrl+C ile durdurup tekrar çalıştırırsanız kaldığı yerden devam eder.
+`iller_kucuk/` klasörüne kaydeder. Site kısa sürede çok sorguya izin vermediği için yavaş ilerler;
+engel görünce bekleyip kendiliğinden devam eder (bilgisayarı açık bırakmanız yeterli). Büyük şehirler
+arasındaki rotalar önce indirilir. Ctrl+C ile durdurup tekrar çalıştırırsanız kaldığı yerden devam eder.
 Bittiğinde `git add iller_kucuk && git commit -m "Rota verileri" && git push` ile gönderin.
 
 Elle indirilen rota dosyalarını eklemek için:

@@ -9,11 +9,14 @@
 //   node scripts/icisleri-cek.mjs                       -> 81 ilin tüm rotaları (eksik olanlar)
 //   node scripts/icisleri-cek.mjs --kalkis adana,izmir  -> sadece bu kalkış illeri
 //   node scripts/icisleri-cek.mjs --varis ankara        -> sadece bu varış illeri
-//   node scripts/icisleri-cek.mjs --paralel 3           -> aynı anda 3 sekme (varsayılan 2)
+//   node scripts/icisleri-cek.mjs --bekle 8             -> iki sorgu arası en az 8 saniye (varsayılan 6)
+//   node scripts/icisleri-cek.mjs --engel-bekle 60      -> site sorguları engellerse 60 dk bekle (varsayılan 30)
 //   node scripts/icisleri-cek.mjs --yeniden             -> var olan rotaları da yeniden indir
 //   node scripts/icisleri-cek.mjs --gorunmez            -> tarayıcı penceresini gösterme
 //
-// İstediğiniz zaman Ctrl+C ile durdurabilirsiniz; tekrar çalıştırınca kaldığı yerden devam eder.
+// Site kısa sürede çok sorguya izin vermiyor; program yavaş ilerler, engel görünce bekleyip
+// kendiliğinden devam eder. Bilgisayarı açık bırakmanız yeterli. Ctrl+C ile durdurup tekrar
+// çalıştırırsanız kaldığı yerden devam eder. Önemli il çiftleri (büyük şehirler) önce indirilir.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -33,24 +36,34 @@ const liste = (v) => (typeof v === 'string' ? v.split(',').map(slug).filter(Bool
 const ILLER = loadIller();
 const kalkisFiltre = liste(arg('kalkis'));
 const varisFiltre = liste(arg('varis'));
-const paralel = Math.max(1, Math.min(6, parseInt(arg('paralel', '2'), 10) || 2));
+const paralel = Math.max(1, Math.min(3, parseInt(arg('paralel', '1'), 10) || 1));
 const yeniden = !!arg('yeniden', false);
 const gorunmez = !!arg('gorunmez', false);
-const bekleme = parseInt(arg('bekle', '800'), 10) || 800;
+const bekleme = (parseFloat(arg('bekle', '6')) || 6) * 1000;
+const engelBekle = (parseFloat(arg('engel-bekle', '30')) || 30) * 60000;
+
+// Önce büyük şehirler arasındaki rotalar indirilsin.
+const ONCELIK = ['istanbul', 'ankara', 'izmir', 'bursa', 'antalya', 'konya', 'adana', 'gaziantep', 'sanliurfa',
+  'kocaeli', 'mersin', 'diyarbakir', 'kayseri', 'eskisehir', 'samsun', 'denizli', 'trabzon', 'erzurum', 'malatya',
+  'van', 'sakarya', 'manisa', 'balikesir', 'aydin', 'mugla', 'hatay', 'kahramanmaras', 'tekirdag', 'sivas', 'afyonkarahisar'];
+const sira = (il) => { const i = ONCELIK.indexOf(il.id); return i < 0 ? 100 + il.plaka : i; };
 
 // İş listesi: her kalkış ili için eksik varış illeri
-const isler = ILLER
+const isler = ILLER.slice().sort((a, b) => sira(a) - sira(b))
   .filter((a) => !kalkisFiltre || kalkisFiltre.includes(a.id))
   .map((a) => {
     const mevcut = new Set(yeniden ? [] : loadCity(a.id).map((r) => slug(r.varis_il)));
-    const hedefler = ILLER.filter((b) => b.id !== a.id && (!varisFiltre || varisFiltre.includes(b.id)) && !mevcut.has(b.id));
+    const hedefler = ILLER.slice().sort((x, y) => sira(x) - sira(y)).filter((b) => b.id !== a.id && (!varisFiltre || varisFiltre.includes(b.id)) && !mevcut.has(b.id));
     return { kalkis: a, hedefler };
   })
   .filter((x) => x.hedefler.length);
 
 const toplam = isler.reduce((n, x) => n + x.hedefler.length, 0);
 if (!toplam) { console.log('İndirilecek eksik rota yok.'); process.exit(0); }
-console.log(`${isler.length} kalkış ili, ${toplam} rota indirilecek (${paralel} sekme).`);
+console.log(`${isler.length} kalkış ili, ${toplam} rota indirilecek (${paralel} sekme, sorgular arası ~${bekleme / 1000} sn).`);
+
+class EngelHatasi extends Error {}
+const saat = (ms) => new Date(Date.now() + ms).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 
 let bitti = 0, hata = 0;
 const baslangic = Date.now();
@@ -191,9 +204,14 @@ async function rotaCek(page, form, a, b) {
   const cevap = page.waitForResponse((r) => /CreateRoute/i.test(r.url()), { timeout: 90000 });
   await butonaBas(page, frame);
   adim('"ROTA OLUŞTUR"a basıldı, cevap bekleniyor…');
-  const res = await cevap.catch(() => { throw new Error('Site 90 saniyede rota cevabı vermedi'); });
+  const res = await cevap.catch(() => { throw new EngelHatasi('Site 90 saniyede rota cevabı vermedi'); });
+  if ([403, 429, 503].includes(res.status())) throw new EngelHatasi(`Site sorguyu reddetti (HTTP ${res.status()})`);
   const json = await res.json().catch(() => null);
-  if (!json || json.success === false || !json.data) throw new Error(json?.message || `Beklenmeyen cevap (HTTP ${res.status()})`);
+  if (!json || json.success === false || !json.data) {
+    const mesaj = json?.message || `Beklenmeyen cevap (HTTP ${res.status()})`;
+    if (/limit|fazla|çok|cok|sınır|sinir|captcha|doğrula|dogrula|bekle|deneyin/i.test(mesaj)) throw new EngelHatasi(mesaj);
+    throw new Error(mesaj);
+  }
   const kayit = donustur(json);
   adim(`Cevap alındı: ${kayit.kalkis_il}/${kayit.kalkis_ilce} → ${kayit.varis_il}/${kayit.varis_ilce}, ${kayit.radar_sayisi} radar`);
   ilkAdim = false;
@@ -201,41 +219,57 @@ async function rotaCek(page, form, a, b) {
 }
 
 async function calisan(browser, kuyruk) {
-  const page = await browser.newPage();
+  let page = await browser.newPage();
   let form = await sayfaHazirla(page);
+  let engelSayisi = 0;
+  const yenidenAc = async () => {
+    if (page.isClosed()) page = await browser.newPage();
+    form = await sayfaHazirla(page);
+  };
   while (kuyruk.length) {
     const { kalkis, hedefler } = kuyruk.shift();
     const tampon = [];
-    for (const hedef of hedefler) {
-      for (let deneme = 1; deneme <= 3; deneme++) {
-        try {
-          tampon.push(await rotaCek(page, form, kalkis, hedef));
-          break;
-        } catch (e) {
-          console.warn(`\n  ! ${kalkis.ad} → ${hedef.ad} (deneme ${deneme}/3): ${e.message}`);
-          if (deneme === 3) {
-            hata++;
-            if (hata === 1) await taniKaydet(page, `${kalkis.ad} → ${hedef.ad}: ${e.message}`);
-            if (hata >= 5 && bitti < 10) {
-              throw new Error('Art arda hata alınıyor; hata-raporu klasöründeki bilgileri gönderin.');
-            }
-            break;
-          }
-          await page.waitForTimeout(3000 * deneme);
-          form = await sayfaHazirla(page).catch(() => form);
+    for (let i = 0; i < hedefler.length; i++) {
+      const hedef = hedefler[i];
+      try {
+        if (page.isClosed()) await yenidenAc();
+        tampon.push(await rotaCek(page, form, kalkis, hedef));
+        engelSayisi = 0;
+        bitti++;
+      } catch (e) {
+        if (/closed/i.test(e.message)) {
+          console.warn('\n  ! Tarayıcı penceresi kapandı, yeniden açılıyor (durdurmak için Ctrl+C).');
+          if (!browser.isConnected()) throw new Error('Tarayıcı kapatıldı');
+          await yenidenAc().catch(() => {});
+          i--; continue;
         }
+        if (e instanceof EngelHatasi) {
+          engelSayisi++;
+          if (tampon.length) kaydet(tampon.splice(0));
+          if (engelSayisi === 1) await taniKaydet(page, `${kalkis.ad} → ${hedef.ad}: ${e.message}`);
+          const ms = engelBekle * Math.min(engelSayisi, 4);
+          console.warn(`\n  ⏸ ${e.message}. Site sorgu sınırına ulaşılmış olabilir; ${Math.round(ms / 60000)} dk bekleniyor (saat ${saat(ms)}'de devam).`);
+          await new Promise((r) => setTimeout(r, ms));
+          await yenidenAc().catch(() => {});
+          i--; continue; // aynı rotayı tekrar dene
+        }
+        hata++;
+        bitti++;
+        console.warn(`\n  ! ${kalkis.ad} → ${hedef.ad}: ${e.message}`);
+        if (hata === 1) await taniKaydet(page, `${kalkis.ad} → ${hedef.ad}: ${e.message}`);
+        if (hata >= 5 && bitti < 10) throw new Error('Art arda hata alınıyor; hata-raporu klasöründeki bilgileri gönderin.');
+        await yenidenAc().catch(() => {});
       }
-      bitti++;
       if (tampon.length >= 3) kaydet(tampon.splice(0));
       const dk = (Date.now() - baslangic) / 60000;
       const kalan = bitti ? Math.round((dk / bitti) * (toplam - bitti)) : '?';
       process.stdout.write(`\r${bitti}/${toplam} rota · hata ${hata} · tahmini kalan ${kalan} dk   `);
-      await page.waitForTimeout(bekleme);
+      await page.waitForTimeout(bekleme + Math.random() * bekleme * 0.5).catch(() => {});
     }
     if (tampon.length) kaydet(tampon);
     console.log(`\n✓ ${kalkis.ad} tamamlandı`);
   }
-  await page.close();
+  if (!page.isClosed()) await page.close();
 }
 
 let browser;
