@@ -40,7 +40,7 @@ Karayolları Genel Müdürlüğü (KGM) canlı verileriyle Türkiye genelindeki 
 - ⚡ **Hız Koridorları & Limit Tabelaları:** Ortalama hız ihlal bölgelerini kesikli kırmızı hatlarla ve hız limiti tabelalarıyla gösterme.
 - 🚧 **KGM Canlı Yol Çalışmaları & Kapalı Yollar:** Karayolları Genel Müdürlüğü (KGM) ArcGIS servis altyapısıyla Türkiye genelindeki aktif yol bakımlarını, onarım sahalarını ve kapalı yolları canlı sorgulama.
 - 📡 **Kesintisiz Akıllı Konum Takibi:** GPS sinyali zayıfladığında Wi-Fi, hücresel veri ve IP yer tespiti altyapısıyla kilitlenmeden arka planda konum takibi.
-- 🔊 **Sesli Yaklaşım İkazı (Web Speech API):** Güzergahtaki radar, kontrol noktaları, hız koridorları veya yol çalışmalarına **1.5 km** mesafe kaldığında Türkçe sesli ikaz verme.
+- 🔊 **Sesli Yaklaşım İkazı (Web Speech API):** Güzergahtaki radar, kontrol noktaları, hız koridorları veya yol çalışmalarına **2 km** mesafe kaldığında Türkçe sesli ikaz verme.
 - 🌤️ **Canlı Meteoroloji & Görüş Mesafesi:** Rota başlangıç, varış ve orta noktalarında anlık sıcaklık, rüzgar ve görüş mesafesi (km) analizi.
 - ⚠️ **Güzergah Risk Skoru:** Seçilen rotadaki denetim ve radar yoğunluğuna göre %0 ile %100 arasında otomatik risk analizi.
 - 🔍 **Tam SEO ve Sosyal Medya Entegrasyonu:** Open Graph, Twitter Cards, Schema.org (JSON-LD) ve bot dostu semantik metin yapıları.

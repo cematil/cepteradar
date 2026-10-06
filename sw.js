@@ -1,6 +1,6 @@
-// Cepte Radar servis çalışanı: uygulama kabuğunu önbelleğe alır, rota verilerini
-// önce ağdan dener (güncel olsun diye), ağ yoksa önbellekteki son sürümü kullanır.
-const VERSION = 'cepteradar-v2';
+// Cepte Radar servis çalışanı: tüm dosyaları önce ağdan dener (güncellemeler hemen
+// görünsün diye), ağ yoksa önbellekteki son sürümü kullanır.
+const VERSION = 'cepteradar-v3';
 const SHELL = [
   './', './index.html', './main.html', './manifest.json',
   './css/app.css', './js/app.js', './js/veri.js', './js/iller.js', './js/koruma.js',
@@ -27,17 +27,10 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // harita döşemeleri, API'ler: doğrudan ağ
 
-  const isData = url.pathname.includes('/iller_kucuk/') || req.mode === 'navigate';
-  if (isData) {
-    // Ağ öncelikli
-    e.respondWith(
-      fetch(req).then((res) => {
-        if (res.ok) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(req, copy)); }
-        return res;
-      }).catch(() => caches.match(req).then((r) => r || caches.match('./index.html')))
-    );
-  } else {
-    // Önbellek öncelikli
-    e.respondWith(caches.match(req).then((r) => r || fetch(req)));
-  }
+  e.respondWith(
+    fetch(req).then((res) => {
+      if (res.ok) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(req, copy)); }
+      return res;
+    }).catch(() => caches.match(req).then((r) => r || (req.mode === 'navigate' ? caches.match('./index.html') : Response.error())))
+  );
 });

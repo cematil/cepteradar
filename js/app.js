@@ -6,7 +6,7 @@
   const ILLER = window.ILLER;
   const ilById = new Map(ILLER.map((il) => [il.id, il]));
   const byName = (a, b) => a.ad.localeCompare(b.ad, 'tr', { sensitivity: 'base' });
-  const WARN_DISTANCE_KM = 1.5;
+  const WARN_DISTANCE_KM = 2; // radar, koridor ve yol çalışması uyarı mesafesi
   const STORE_KEY = 'cepteradar:son-rotalar';
 
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -129,7 +129,8 @@
   let routeLayers = [];
   let warnPoints = [];
   const warned = new Set();
-  let warnedRoadWork = false;
+  const warnedRoadWorks = new Set();
+  let lastRoadWorkQuery = 0;
   let requestSeq = 0;
 
   function clearRoute() {
@@ -137,7 +138,8 @@
     routeLayers = [];
     warnPoints = [];
     warned.clear();
-    warnedRoadWork = false;
+    warnedRoadWorks.clear();
+    lastRoadWorkQuery = 0;
   }
   const addLayer = (l) => { l.addTo(map); routeLayers.push(l); return l; };
 
@@ -386,19 +388,24 @@
 
     warnPoints.forEach((pt) => {
       if (!warned.has(pt.key) && distanceKm(lat, lon, pt.coords[0], pt.coords[1]) <= WARN_DISTANCE_KM) {
-        warned.add(pt.key);
-        speak(`Dikkat! 1.5 kilometre sonra ${pt.name} başlıyor.`);
-        toast(`⚠️ 1.5 km sonra ${pt.name}`);
+        // Birbirine çok yakın noktalar (ör. aynı yerden başlayan iki koridor) için tek uyarı ver.
+        warnPoints.forEach((o) => { if (distanceKm(pt.coords[0], pt.coords[1], o.coords[0], o.coords[1]) < 0.5) warned.add(o.key); });
+        speak(`Dikkat! ${WARN_DISTANCE_KM} kilometre sonra ${pt.name} başlıyor.`);
+        toast(`⚠️ ${WARN_DISTANCE_KM} km sonra ${pt.name}`);
       }
     });
 
-    if (!warnedRoadWork && map.hasLayer(kgmLayer)) {
+    // Yol çalışmaları: en fazla 20 sn'de bir sorgulanır, her çalışma için bir kez uyarılır.
+    const now = Date.now();
+    if (map.hasLayer(kgmLayer) && now - lastRoadWorkQuery > 20000) {
+      lastRoadWorkQuery = now;
       L.esri.query({ url: `${KGM_URL}/0` }).nearby(L.latLng(ll), WARN_DISTANCE_KM * 1000).run((error, fc) => {
-        if (!error && fc && fc.features && fc.features.length) {
-          warnedRoadWork = true;
-          speak('Dikkat! Yakınınızda yol çalışması veya kapalı yol bulunmaktadır.');
-          toast('🚧 Yakınınızda yol çalışması / kapalı yol var');
-        }
+        if (error || !fc || !fc.features) return;
+        const fresh = fc.features.filter((f) => !warnedRoadWorks.has(String(f.id ?? JSON.stringify(f.geometry && f.geometry.coordinates).slice(0, 60))));
+        if (!fresh.length) return;
+        fresh.forEach((f) => warnedRoadWorks.add(String(f.id ?? JSON.stringify(f.geometry && f.geometry.coordinates).slice(0, 60))));
+        speak(`Dikkat! ${WARN_DISTANCE_KM} kilometre içinde yol çalışması veya kapalı yol bulunmaktadır.`);
+        toast(`🚧 ${WARN_DISTANCE_KM} km içinde yol çalışması / kapalı yol var`);
       });
     }
   }
