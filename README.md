@@ -76,7 +76,20 @@ Kaynak: [İller Arası Radar ve Kontrol Noktası Uygulama Sayıları](https://ww
 Arayüzde 81 ilin tamamı seçilebilir. Bir rota için veri yoksa harita ve hava durumu yine gösterilir, radar sayıları için "veri yok" uyarısı çıkar.
 Varış listesinde **●** işaretli iller, seçilen kalkış ilinden verisi olan illerdir. Bir yönün verisi yoksa ters yönün verisi kullanılır.
 
-Yeni indirilen rota dosyalarını eklemek için:
+**Tüm illeri otomatik indirmek için** (kendi bilgisayarınızda, Google Chrome kurulu olmalı):
+
+```bash
+npm install
+npm run veri:cek                                   # 81 ilin eksik tüm rotaları
+node scripts/icisleri-cek.mjs --kalkis izmir       # sadece bir kalkış ili
+node scripts/icisleri-cek.mjs --paralel 3          # aynı anda 3 sekme
+```
+
+Program İçişleri sayfasını açar, her il çifti için "ROTA OLUŞTUR"a basar ve sitenin cevabını
+`iller_kucuk/` klasörüne kaydeder. Ctrl+C ile durdurup tekrar çalıştırırsanız kaldığı yerden devam eder.
+Bittiğinde `git add iller_kucuk && git commit -m "Rota verileri" && git push` ile gönderin.
+
+Elle indirilen rota dosyalarını eklemek için:
 
 ```bash
 node scripts/veri-birlestir.mjs indirilenler/     # klasördeki tüm .json'ları birleştirir
