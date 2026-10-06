@@ -34,7 +34,8 @@
 <main>
     <p class="not"><b>Kısaca:</b> Cepte Radar'da üyelik yoktur. Adınızı, telefon numaranızı, e-postanızı veya
     konum geçmişinizi toplamayız, saklamayız ve satmayız. Konumunuz yalnızca uygulama açıkken, sürüş
-    uyarıları ve hız sınırı için cihazınızda kullanılır.</p>
+    uyarıları ve hız sınırı için cihazınızda kullanılır. Yalnızca siz <b>"Bildir"</b> düğmesiyle bir topluluk
+    bildirimi bırakırsanız, o bildirim (tür, konum, zaman) 1 saat süreyle saklanır ve diğer sürücülere gösterilir.</p>
 
     <h2>1. Veri sorumlusu ve iletişim</h2>
     <p>Bu politika, Cepte Radar web sitesi ve Android uygulaması ("Uygulama") için geçerlidir.
@@ -48,6 +49,10 @@
             <td>Size yaklaşan kamera, hız koridoru ve tehlike noktaları için uyarı vermek; bulunduğunuz yolun hız sınırını göstermek; en yakın ili seçmek</td>
             <td>Hayır. Konum yalnızca cihazınızın belleğinde işlenir, sürüş bitince silinir. Sunucularımıza gönderilmez.</td></tr>
         <tr><td>Yaklaşık konum (IP adresinden)</td><td>GPS sinyali alınamadığında</td><td>Haritayı bulunduğunuz bölgeye getirmek</td><td>Hayır</td></tr>
+        <tr><td>Topluluk bildirimi: türü (kaza, tehlike…), konumu, zamanı, isimsiz cihaz kimliği; verdiğiniz "Hâlâ orada / Artık yok" oyları</td>
+            <td>Yalnızca siz <b>Bildir</b> düğmesine basıp tür seçtiğinizde veya bir bildirime oy verdiğinizde (ilk seferde açık rızanız alınır)</td>
+            <td>Diğer sürücüleri yoldaki duruma karşı uyarmak; kötüye kullanımı önlemek (aynı cihazdan sık bildirim ve tekrarlı oy engeli)</td>
+            <td>Evet, Google Firebase sunucularında (Avrupa Birliği). Bildirim <b>1 saat</b> görünür; süresi dolan bildirimler ve oylar otomatik silinir (silme işlemi genellikle 24 saat içinde tamamlanır).</td></tr>
         <tr><td>Son aranan rotalar ve ayarlar</td><td>Rota oluşturduğunuzda</td><td>Kısayol olarak göstermek (ör. "Ankara → İzmir"), HUD ayna ayarı</td>
             <td>Yalnızca cihazınızda (tarayıcı/uygulama depolaması). Uygulamayı silince veya verileri temizleyince silinir.</td></tr>
     </table>
@@ -67,9 +72,15 @@
         <tr><td>Karayolları Genel Müdürlüğü harita servisi (giscbs.kgm.gov.tr)</td><td>Harita bölgesi; KGM katmanı açıkken sürüşte konumunuzun 2 km çevresi</td><td>Yol çalışması ve kapalı yol bilgisi</td></tr>
         <tr><td>ipapi.co, ipwho.is</td><td>IP adresi</td><td>GPS yokken yaklaşık konum</td></tr>
         <tr><td>GitHub (raw.githubusercontent.com)</td><td>—</td><td>Güncel radar/denetim veri dosyalarını indirmek</td></tr>
+        <tr><td>Google Firebase (Firestore, Authentication) — Google Ireland Ltd. / Google LLC</td><td>Topluluk bildirimleri ve oylar; isimsiz (anonim) oturum kimliği; görüntülenen bölgedeki bildirimleri almak için harita bölgesi</td><td>Topluluk bildirimlerini saklamak ve göstermek</td></tr>
     </table>
 
-    <h2>4. Verilerin paylaşılması ve satılması</h2>
+    <h2>4. Yurt dışına aktarım</h2>
+    <p>Topluluk bildirimleri Google Firebase'in Avrupa Birliği'ndeki sunucularında saklanır. Bu aktarım, ilk bildiriminizden
+    önce alınan açık rızanıza dayanır (KVKK md. 9). Rıza vermezseniz bildirim yapamaz ve oy veremezsiniz; uygulamanın
+    diğer tüm özellikleri çalışmaya devam eder.</p>
+
+    <h2>4a. Verilerin paylaşılması ve satılması</h2>
     <p>Kişisel verilerinizi hiçbir şirkete satmayız, kiralamayız ve reklam amacıyla paylaşmayız.
     Yukarıdaki hizmetlere gönderilen konum bilgisi, yalnızca o özelliğin çalışması için gereken en az bilgidir.</p>
 

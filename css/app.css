@@ -443,3 +443,33 @@ code { background: #1e293b; padding: 0 4px; border-radius: 4px; color: #fcd34d; 
 .konum-onay ul { padding-left: 20px; margin: 6px 0 10px; }
 .konum-onay a { color: #60a5fa; }
 .konum-onay-btn { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
+
+/* ---------------------------------------------------------------- Topluluk bildirimleri */
+.bildirim-marker {
+  width: 30px; height: 30px; border-radius: 10px 10px 10px 2px; display: grid; place-items: center;
+  background: #fff; border: 3px solid #a855f7; font-size: 15px; box-shadow: 0 0 0 4px rgba(168, 85, 247, .3), 0 3px 8px rgba(0, 0, 0, .35);
+}
+.bildir-btn {
+  position: absolute; z-index: 800; right: 10px; bottom: 150px; display: none; align-items: center; gap: 6px;
+  padding: 10px 14px; border: 0; border-radius: 999px; cursor: pointer; font-weight: 900; font-size: 14px;
+  background: #a855f7; color: #fff; box-shadow: 0 8px 20px rgba(168, 85, 247, .45);
+}
+.topluluk-acik .bildir-btn { display: inline-flex; }
+.bildir-btn span { font-size: 17px; }
+.modal-box.bildir-kutu { max-width: 460px; padding: 18px; align-self: center; }
+.bildir-kutu h2 { margin: 0 0 4px; }
+.bildir-turler { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0; }
+.bildir-turler button {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 6px; cursor: pointer;
+  border-radius: 14px; border: 1px solid var(--line); background: var(--card-2); color: var(--text); font-weight: 800; font-size: 13px;
+}
+.bildir-turler button span { font-size: 28px; }
+.bildir-kutu .bildir-iptal { width: 100%; }
+.bld-oy { display: flex; gap: 6px; margin-top: 8px; }
+.bld-oy button { flex: 1; padding: 8px 6px; border-radius: 10px; border: 1px solid #cbd5e1; background: #f8fafc; color: #0f172a; font-weight: 800; cursor: pointer; }
+.bld-soru {
+  position: absolute; z-index: 850; left: 10px; right: 10px; top: 112px; max-width: 380px; margin: 0 auto;
+  padding: 12px; border-radius: 14px; background: rgba(11, 17, 32, .96); color: #fff; border: 2px solid #a855f7; text-align: center;
+}
+.bld-soru.hidden { display: none; }
+.bld-soru .bld-oy button { padding: 12px 6px; font-size: 15px; }

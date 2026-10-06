@@ -190,3 +190,6 @@ body[data-screen="welcome"] .tabbar, body[data-screen="map"] .tabbar { display: 
 /* Sürüş ekranı öğeleri alt kartın üstünde */
 .scr-map .kadran { bottom: calc(var(--sheet-h, 250px) + 74px); }
 .scr-map .koridor-panel { top: calc(176px + var(--safe-t)); }
+
+.scr-map .bildir-btn { bottom: calc(var(--sheet-h, 250px) + 74px); }
+.scr-map .bld-soru { top: calc(176px + var(--safe-t)); }

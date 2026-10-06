@@ -1,0 +1,93 @@
+rules_version = '2';
+
+// Cepte Radar — topluluk bildirimleri güvenlik kuralları.
+// Firebase konsolu → Firestore Database → Kurallar (Rules) sekmesine bu dosyanın tamamını yapıştırıp Yayınla.
+//
+// Veri:
+//   bildirimler/{id}            tur, lat, lon, g4 (geohash 4), olusturma, bitis, uid, evet, hayir
+//   bildirimler/{id}/oylar/{uid} evet (bool), silinme
+//   kullanicilar/{uid}           son (son bildirim zamanı; hız sınırı için)
+// Kişisel bilgi (ad, e-posta, telefon, konum geçmişi) saklanmaz; uid anonim oturum kimliğidir.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function girisli() { return request.auth != null; }
+    function kullaniciYolu() { return /databases/$(database)/documents/kullanicilar/$(request.auth.uid); }
+    function dakika(n) { return duration.value(n, 'm'); }
+
+    match /bildirimler/{id} {
+      // Bildirimler herkese açık okunur (haritada gösterilir).
+      allow read: if true;
+
+      // Yeni bildirim: doğru alanlar, Türkiye sınırları içinde, 1 saatlik ömür, 2 dakikada en fazla 1 bildirim.
+      allow create: if girisli()
+        && request.resource.data.keys().hasOnly(['tur', 'lat', 'lon', 'g4', 'olusturma', 'bitis', 'uid', 'evet', 'hayir'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.tur in ['kaza', 'tehlike', 'calisma', 'yogunluk', 'ariza', 'polis']
+        && request.resource.data.lat is number && request.resource.data.lat > 35.5 && request.resource.data.lat < 42.5
+        && request.resource.data.lon is number && request.resource.data.lon > 25.5 && request.resource.data.lon < 45.0
+        && request.resource.data.g4 is string && request.resource.data.g4.size() == 4
+        && request.resource.data.olusturma == request.time
+        && request.resource.data.bitis is timestamp
+        && request.resource.data.bitis > request.time + dakika(50)
+        && request.resource.data.bitis < request.time + dakika(70)
+        && request.resource.data.evet == 0 && request.resource.data.hayir == 0
+        // Hız sınırı: aynı yazımda kullanıcı kaydı güncellenmeli ve önceki bildirimden 2 dk geçmiş olmalı.
+        && getAfter(kullaniciYolu()).data.son == request.time
+        && (!exists(kullaniciYolu()) || request.time > get(kullaniciYolu()).data.son + dakika(2));
+
+      // Oy: sadece sayaçlar (ve "evet"te süre) değişir; aynı yazımda kullanıcının oy kaydı ilk kez oluşturulur.
+      allow update: if girisli()
+        && resource.data.uid != request.auth.uid
+        && resource.data.bitis > request.time
+        && !exists(/databases/$(database)/documents/bildirimler/$(id)/oylar/$(request.auth.uid))
+        && existsAfter(/databases/$(database)/documents/bildirimler/$(id)/oylar/$(request.auth.uid))
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['evet', 'hayir', 'bitis'])
+        && (
+          (getAfter(/databases/$(database)/documents/bildirimler/$(id)/oylar/$(request.auth.uid)).data.evet == true
+            && request.resource.data.evet == resource.data.evet + 1
+            && request.resource.data.hayir == resource.data.hayir
+            && request.resource.data.bitis > request.time + dakika(50)
+            && request.resource.data.bitis < request.time + dakika(70))
+          ||
+          (getAfter(/databases/$(database)/documents/bildirimler/$(id)/oylar/$(request.auth.uid)).data.evet == false
+            && request.resource.data.hayir == resource.data.hayir + 1
+            && request.resource.data.evet == resource.data.evet
+            && request.resource.data.bitis == resource.data.bitis)
+        );
+
+      allow delete: if false;
+
+      match /oylar/{uid} {
+        allow read: if false;
+        allow create: if girisli()
+          && uid == request.auth.uid
+          && request.resource.data.keys().hasOnly(['evet', 'silinme'])
+          && request.resource.data.evet is bool
+          && request.resource.data.silinme is timestamp
+          && request.resource.data.silinme > request.time
+          && request.resource.data.silinme < request.time + dakika(180)
+          // Bildirimin sayacı aynı yazımda güncellenmeli (yukarıdaki update kuralı denetler).
+          && getAfter(/databases/$(database)/documents/bildirimler/$(id)).data.evet
+             + getAfter(/databases/$(database)/documents/bildirimler/$(id)).data.hayir
+             == get(/databases/$(database)/documents/bildirimler/$(id)).data.evet
+             + get(/databases/$(database)/documents/bildirimler/$(id)).data.hayir + 1;
+        allow update, delete: if false;
+      }
+    }
+
+    match /kullanicilar/{uid} {
+      allow read: if false;
+      allow create, update: if girisli()
+        && uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['son'])
+        && request.resource.data.son == request.time;
+      allow delete: if false;
+    }
+
+    // Diğer her şey kapalı.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

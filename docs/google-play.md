@@ -56,19 +56,24 @@ Yeni sürüm adı için `package.json` içindeki `"version"` değerini değişti
 
 ### Veri güvenliği (Data safety) formu
 
-Uygulama sunucularımıza veri göndermez; ancak sürüşte konumun çevresini OpenStreetMap (Overpass) servisine,
-il koordinatlarını rota/hava servislerine iletir. Temkinli ve doğru beyan:
+Sürüşte konumun çevresi OpenStreetMap (Overpass) servisine, il koordinatları rota/hava servislerine iletilir.
+Kullanıcı "Bildir" ile topluluk bildirimi bırakırsa bildirim (tür, konum, zaman, anonim kimlik) Firebase'de 1 saat saklanır
+ve diğer kullanıcılara gösterilir. Temkinli ve doğru beyan:
 
 | Soru | Cevap |
 |---|---|
 | Uygulama gerekli kullanıcı verilerini topluyor veya paylaşıyor mu? | **Evet** |
 | Aktarılan tüm veriler şifreleniyor mu? | **Evet** (tüm bağlantılar HTTPS) |
 | Kullanıcılar verilerinin silinmesini isteyebilir mi? | Veri sunucuda saklanmadığı için "veriler otomatik/anında silinir" seçeneğini işaretleyin; gizlilik politikasındaki açıklamayı kullanın |
-| **Konum → Yaklaşık konum** | Toplanıyor: Evet · Paylaşılıyor: Evet · Geçici işleniyor: **Evet** · Zorunlu değil (kullanıcı seçer) · Amaç: **Uygulama işlevselliği** |
+| **Konum → Yaklaşık konum** | Toplanıyor: Evet · Paylaşılıyor: Evet · Geçici işleniyor: **Hayır** (bildirimler 1 saat saklanır) · Zorunlu değil (kullanıcı seçer) · Amaç: **Uygulama işlevselliği** |
 | **Konum → Hassas konum** | Aynı cevaplar |
-| Kişisel bilgi, finans, iletişim, fotoğraf, dosya, cihaz kimliği, uygulama etkinliği | **Hayır** |
+| **Uygulama etkinliği → Diğer kullanıcı tarafından oluşturulan içerik** | Toplanıyor: Evet (topluluk bildirimleri ve oylar) · Paylaşılıyor: Hayır (yalnızca uygulama içinde diğer kullanıcılara gösterilir) · Zorunlu değil · Amaç: Uygulama işlevselliği |
+| **Cihaz veya diğer kimlikler** | Toplanıyor: Evet (Firebase anonim oturum kimliği) · Paylaşılıyor: Hayır · Zorunlu değil · Amaç: Uygulama işlevselliği, **Sahtekarlık önleme, güvenlik** |
+| Kişisel bilgi, finans, iletişim, fotoğraf, dosya | **Hayır** |
 
-> Faz 3'te kullanıcı bildirimleri (Firebase) eklenince bu form ve gizlilik politikası güncellenecek.
+**Kullanıcı tarafından oluşturulan içerik (UGC) kuralı:** Bildirimler serbest metin içermez (yalnızca 6 sabit tür), 1 saatte
+kaybolur ve diğer sürücüler "Artık yok" oyuyla kaldırabilir. Bu, Play'in UGC kurallarındaki denetim ve şikâyet şartını karşılar;
+Uygulama içeriği bölümünde UGC sorusu çıkarsa bu açıklamayı kullanın.
 
 ### Konum izni
 
@@ -136,3 +141,19 @@ Kendi alan adınız varsa (ör. cepteradar.com) oradaki adresi kullanın.
    (son kurala göre en az 12 testçi, 14 gün kesintisiz). Testçilerin Gmail adreslerini bir listeye ekleyin.
 3. Kapalı test tamamlanınca Play Console'dan **üretime erişim** başvurusu yapın, sonra üretim sürümünü yayınlayın.
 4. İlk inceleme birkaç gün sürebilir.
+
+## 8. Firebase kurulumu (topluluk bildirimleri)
+
+1. **Firestore Database → Create database**: konum **europe-west3 (Frankfurt)**, **Production mode**.
+2. **Firestore → Rules**: depodaki `firestore.rules` dosyasının tamamını yapıştırın → **Publish**.
+3. **Authentication → Get started → Sign-in method → Anonymous → Enable**.
+4. **Firestore → TTL (Yaşam süresi)** → iki politika ekleyin (süresi dolan veriler otomatik silinsin):
+   - Koleksiyon grubu `bildirimler`, zaman alanı `bitis`
+   - Koleksiyon grubu `oylar`, zaman alanı `silinme`
+5. **Proje ayarları → Genel → Web uygulaması ekle** → çıkan `firebaseConfig` değerlerini `js/firebase-ayar.js` dosyasına yazın
+   (değerler gizli değildir). Dosya `null` kalırsa bildirim özelliği gizli kalır.
+6. Önerilen: **Authentication → Settings → Authorized domains** listesine sitenizin alan adını ekleyin
+   (`cematil.github.io`; Android uygulaması için `localhost` zaten listededir).
+
+Ücretsiz Spark planı başlangıç için yeterlidir (günlük okuma/yazma kotaları). Kullanıcı sayısı artınca
+Firebase konsolundaki **Kullanım** sekmesinden takip edin.
