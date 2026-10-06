@@ -227,7 +227,7 @@
   }
 
   // ---------------------------------------------------------------- ROTA
-  function setRisk(score, hasData) {
+  function setRisk(score, hasData, estimated) {
     const badge = $('risk-badge');
     $('risk-gauge').style.setProperty('--p', hasData ? score : 0);
     $('risk-score').textContent = hasData ? `%${score}` : '—';
@@ -236,6 +236,7 @@
     else if (score > 65) { badge.textContent = 'YÜKSEK RİSK'; level = 'high'; }
     else if (score > 35) { badge.textContent = 'ORTA RİSK'; level = 'mid'; }
     else { badge.textContent = 'DÜŞÜK RİSK'; level = 'low'; }
+    if (hasData && estimated) badge.textContent = `TAHMİNİ ${badge.textContent.replace(' RİSK', '')}`;
     $('risk-gauge').dataset.level = level;
   }
 
@@ -445,14 +446,36 @@
         if (!listed.some((x) => (c.id != null && x.id === c.id) || x.name === c.name)) listed.push(c);
       });
 
-      const radar = rec ? toInt(rec.radar_sayisi) : 0;
-      const kontrol = rec ? toInt(rec.kontrol_sayisi) : 0;
+      // Rotanın geçtiği iller (rota sırasıyla). Bu rota için kayıt yoksa radar/kontrol sayıları,
+      // bu illerin başka rotalardaki İçişleri verilerinden (il_ozet.json) tahmin edilir.
+      const segs = Veri.provinceSegments(dense, ILLER);
+      let estimate = null;
+      if (!rec) {
+        const ozet = await Veri.loadProvinceSummary();
+        if (seq !== requestSeq) return;
+        const rows = [], eksik = [];
+        for (const id of segs.keys()) {
+          const o = ozet[id], il = ilById.get(id);
+          if (o) rows.push({ City: il ? il.ad : o.ad, Radarli: o.radarli, Radarsiz: o.radarsiz });
+          else if (il) eksik.push(il.ad);
+        }
+        if (rows.length) estimate = { rows, eksik };
+      }
+      const sum = (key) => estimate.rows.reduce((n, r) => n + r[key], 0);
+      const radar = rec ? toInt(rec.radar_sayisi) : estimate ? sum('Radarli') : 0;
+      const kontrol = rec ? toInt(rec.kontrol_sayisi) : estimate ? sum('Radarsiz') : 0;
       const koridor = rec ? toInt(rec.koridor_sayisi) : mapCorridors.length;
-      $('stat-radar').textContent = rec ? radar : '—';
-      $('stat-kontrol').textContent = rec ? kontrol : '—';
+      $('stat-radar').textContent = rec ? radar : estimate ? `≈${radar}` : '—';
+      $('stat-kontrol').textContent = rec ? kontrol : estimate ? `≈${kontrol}` : '—';
       $('stat-koridor').textContent = koridor;
       $('stat-kamera').textContent = cameras.length;
-      setRisk(Math.min(99, Math.round(((radar + kontrol + koridor + cameras.length) / 45) * 100)), !!rec);
+      setRisk(Math.min(99, Math.round(((radar + kontrol + koridor + cameras.length) / 45) * 100)), !!(rec || estimate), !!estimate);
+      if (estimate) {
+        const el = $('data-status');
+        el.innerHTML = `ℹ️ <b>${esc(from.ad)} → ${esc(to.ad)}</b> rotası için doğrudan İçişleri kaydı yok. Radar ve kontrol sayıları, geçilen illerin (${estimate.rows.map((r) => esc(r.City)).join(', ')}) diğer rotalardaki İçişleri verilerinden <b>tahmin edildi</b>.` +
+          (estimate.eksik.length ? ` Verisi olmayan iller: ${estimate.eksik.map(esc).join(', ')}.` : '');
+      }
+      const estNote = estimate ? ', tahmini' : '';
 
       const meta = [`${Math.round(distKm)} km${approx ? ' (yaklaşık)' : ''}`];
       if (durationMin) meta.push(`~${Math.floor(durationMin / 60)} sa ${Math.round(durationMin % 60)} dk`);
@@ -462,9 +485,8 @@
       setWeather('end', to, '🎯', wEnd);
 
       renderCorridors(listed);
-      const breakdown = rec ? (rec.gecen_iller || []) : [];
+      const breakdown = rec ? (rec.gecen_iller || []) : estimate ? estimate.rows : [];
       // İl bazında kamera sayısı (rotanın o ilden geçen bölümündeki kameralar)
-      const segs = Veri.provinceSegments(dense, ILLER);
       const camCounts = new Map();
       cameras.forEach((c) => {
         for (const [id, s] of segs) if (c.routeIndex >= s.first && c.routeIndex <= s.last) { camCounts.set(id, (camCounts.get(id) || 0) + 1); break; }
@@ -522,7 +544,7 @@
             const pos = at(0.4);
             addLayer(L.marker(pos, { icon: L.divIcon({ className: '', html: `<div class="blink-marker radar"><span>${r}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 500 }))
               .bindPopup(`<b>📷 ${esc(il.ad)} — ${r} radarlı denetim</b>${note}`);
-            alerts.push({ idx: atIdx(0.4), icon: '🔴', text: `Radar denetim bölgesi — ${il.ad}: ${r} radarlı denetim (il bazında)` });
+            alerts.push({ idx: atIdx(0.4), icon: '🔴', text: `Radar denetim bölgesi — ${il.ad}: ${r} radarlı denetim (il bazında${estNote})` });
             warnPoints.push({
               key: `r${i}`, type: 'radar', coords: pos,
               say: `Dikkat! ${WARN_DISTANCE_KM} kilometre sonra radar denetim bölgesi. ${il.ad} ilinde ${r} radarlı denetim noktası bulunuyor.`,
@@ -533,7 +555,7 @@
             const pos = at(0.6);
             addLayer(L.marker(pos, { icon: L.divIcon({ className: '', html: `<div class="blink-marker kontrol"><span>${rs}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 500 }))
               .bindPopup(`<b>👮 ${esc(il.ad)} — ${rs} radarsız kontrol noktası</b>${note}`);
-            alerts.push({ idx: atIdx(0.6), icon: '🔵', text: `Kontrol noktası bölgesi — ${il.ad}: ${rs} kontrol noktası (il bazında)` });
+            alerts.push({ idx: atIdx(0.6), icon: '🔵', text: `Kontrol noktası bölgesi — ${il.ad}: ${rs} kontrol noktası (il bazında${estNote})` });
             warnPoints.push({
               key: `c${i}`, type: 'kontrol', coords: pos,
               say: `Dikkat! ${WARN_DISTANCE_KM} kilometre sonra trafik kontrol noktası bölgesi. ${il.ad} ilinde ${rs} kontrol noktası bulunuyor.`,

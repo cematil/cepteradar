@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const DATA_DIR = path.join(ROOT, 'iller_kucuk');
-const SPECIAL = new Set(['index.json', 'koridorlar.json', 'osm_radarlar.json']);
+const SPECIAL = new Set(['index.json', 'koridorlar.json', 'osm_radarlar.json', 'il_ozet.json']);
 
 export const slug = (s) => String(s || '').trim().toLocaleLowerCase('tr')
   .replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i')
@@ -111,6 +111,7 @@ export function cityFiles() {
 export function indeksle() {
   const index = {};
   const corridors = new Map();
+  const iller = new Map(); // il -> rotalardaki [radarlı, radarsız] değerleri
   const straight = (c) => c.length < 3 || c.every((p, i) => i === 0 ||
     (Math.abs(p[0] - c[i - 1][0] - (c[1][0] - c[0][0])) < 1e-3 && Math.abs(p[1] - c[i - 1][1] - (c[1][1] - c[0][1])) < 1e-3));
   for (const id of cityFiles()) {
@@ -118,6 +119,13 @@ export function indeksle() {
     const targets = [...new Set(recs.map((r) => slug(r.varis_il)).filter(Boolean))].sort();
     if (targets.length) index[id] = targets;
     for (const r of recs) {
+      for (const c of asList(r.gecen_iller)) {
+        if (!c || typeof c !== 'object' || !c.City) continue;
+        const k = slug(c.City);
+        if (!iller.has(k)) iller.set(k, { ad: String(c.City).trim(), r: [], rs: [] });
+        iller.get(k).r.push(+c.Radarli || 0);
+        iller.get(k).rs.push(+c.Radarsiz || 0);
+      }
       for (const k of asList(r.hiz_koridorlari)) {
         const c = Array.isArray(k.coords) ? k.coords : [];
         if (c.length < 2 || straight(c)) continue;
@@ -128,6 +136,12 @@ export function indeksle() {
   }
   fs.writeFileSync(path.join(DATA_DIR, 'index.json'), JSON.stringify(index));
   fs.writeFileSync(path.join(DATA_DIR, 'koridorlar.json'), JSON.stringify([...corridors.values()]));
+  // il_ozet.json: her ilin farklı rotalardaki denetim sayılarının ortancası (rota verisi olmayan
+  // güzergahlarda tahmin için kullanılır)
+  const ortanca = (a) => { const s = [...a].sort((x, y) => x - y); return s[Math.floor((s.length - 1) / 2)]; };
+  const ozet = {};
+  for (const [k, v] of [...iller].sort()) ozet[k] = { ad: v.ad, radarli: ortanca(v.r), radarsiz: ortanca(v.rs), rota: v.r.length };
+  fs.writeFileSync(path.join(DATA_DIR, 'il_ozet.json'), JSON.stringify(ozet));
   const total = Object.values(index).reduce((n, t) => n + t.length, 0);
   return { iller: Object.keys(index).length, rotalar: total, koridorlar: corridors.size };
 }

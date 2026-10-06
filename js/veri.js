@@ -123,6 +123,13 @@
     return corridorsPromise;
   }
 
+  // İl bazında denetim özeti (scripts/lib-veri.mjs üretir): rota verisi olmayan güzergahlarda tahmin için
+  let ozetPromise = null;
+  function loadProvinceSummary() {
+    if (!ozetPromise) ozetPromise = fetchJson(`${DATA_DIR}/il_ozet.json`).catch(() => ({}));
+    return ozetPromise;
+  }
+
   // OpenStreetMap'ten alınmış, gerçek konumlu hız kameraları (scripts/osm-cek.mjs üretir).
   let camerasPromise = null;
   function loadCameras() {
@@ -315,6 +322,6 @@ out qt;`;
   window.Veri = {
     slug, loadIndex, hasRoute, findRoute, isStraightLine, osrmRoute, weather,
     loadCorridors, densify, buildRouteIndex, corridorsOnRoute, provinceSegments,
-    loadCameras, camerasOnRoute, pointIndex, fastKm, routeHazards,
+    loadCameras, camerasOnRoute, pointIndex, fastKm, routeHazards, loadProvinceSummary,
   };
 })();
