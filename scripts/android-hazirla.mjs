@@ -35,3 +35,28 @@ for (const dir of fs.readdirSync(res).filter((d) => d.startsWith('mipmap-'))) {
   }
 }
 console.log('✓ Uygulama ikonları güncellendi');
+
+// Sürüm ve imza (Google Play için). Ortam değişkenleri yoksa debug derlemesi aynen çalışır.
+//   CEPTE_VERSION_CODE   : Play'e her yüklemede artan tam sayı (iş akışında çalıştırma numarası)
+//   CEPTE_KEYSTORE_FILE  : yükleme anahtarı (.jks) dosyasının yolu
+//   CEPTE_KEYSTORE_PASSWORD, CEPTE_KEY_ALIAS, CEPTE_KEY_PASSWORD
+const gradlePath = path.join(ROOT, 'android/app/build.gradle');
+let gradle = fs.readFileSync(gradlePath, 'utf8');
+const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+const versionCode = parseInt(process.env.CEPTE_VERSION_CODE || '1', 10);
+gradle = gradle.replace(/versionCode \d+/, `versionCode ${versionCode}`)
+  .replace(/versionName "[^"]*"/, `versionName "${pkg.version}"`);
+if (process.env.CEPTE_KEYSTORE_FILE && !gradle.includes('signingConfigs {')) {
+  gradle = gradle.replace(/(\n\s*)buildTypes \{/, `$1signingConfigs {
+        release {
+            storeFile file(System.getenv("CEPTE_KEYSTORE_FILE"))
+            storePassword System.getenv("CEPTE_KEYSTORE_PASSWORD")
+            keyAlias System.getenv("CEPTE_KEY_ALIAS")
+            keyPassword System.getenv("CEPTE_KEY_PASSWORD")
+        }
+    }$1buildTypes {`)
+    .replace(/(release \{\s*\n\s*)minifyEnabled false/, '$1signingConfig signingConfigs.release\n            minifyEnabled false');
+  console.log('✓ build.gradle: yayın imzası eklendi');
+}
+fs.writeFileSync(gradlePath, gradle);
+console.log(`✓ build.gradle: sürüm ${pkg.version} (${versionCode})`);

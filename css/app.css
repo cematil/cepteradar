@@ -435,3 +435,11 @@ code { background: #1e293b; padding: 0 4px; border-radius: 4px; color: #fcd34d; 
 .hud-dugmeler { display: flex; gap: 10px; justify-content: center; padding: 10px 10px calc(14px + var(--safe-b)); }
 .hud-dugmeler button { padding: 10px 16px; border-radius: 999px; border: 1px solid #334155; background: #0f172a; color: #cbd5e1; font-weight: 800; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { .ekran-flas.on { animation-duration: .01s; } .kadran[data-level="asim"] { animation: none; } }
+
+/* Konum kullanımı bilgilendirmesi */
+.modal-box.konum-onay { max-width: 460px; padding: 20px; align-self: center; }
+.konum-onay h2 { margin: 0 0 8px; font-size: 19px; }
+.konum-onay p, .konum-onay li { font-size: 14px; }
+.konum-onay ul { padding-left: 20px; margin: 6px 0 10px; }
+.konum-onay a { color: #60a5fa; }
+.konum-onay-btn { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }

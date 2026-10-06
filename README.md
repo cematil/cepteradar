@@ -101,6 +101,11 @@ uygulamayı güncellemek gerekmez (adres `app.html` içindeki `CEPTE_VERI_URL`).
 
 ---
 
+## 🏪 Google Play
+
+Yayın adımları, imza anahtarı, mağaza metinleri, Veri güvenliği formu cevapları: [docs/google-play.md](docs/google-play.md).
+İmzalı paket: Actions → **Android Play Sürümü** → Run workflow. Gizlilik politikası: [gizlilik.html](gizlilik.html).
+
 ## 🗂️ Veriler ve Doğruluk
 
 | Bilgi | Kaynak | Not |

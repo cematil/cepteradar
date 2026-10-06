@@ -692,7 +692,44 @@
     }
   }
 
+  // Konum izni istenmeden önce açık bilgilendirme (Google Play "belirgin açıklama" kuralı); bir kez kabul edilir.
+  const CONSENT_KEY = 'cepteradar:konum-onay';
+  function locationConsent() {
+    if (store(CONSENT_KEY, false)) return Promise.resolve(true);
+    return new Promise((resolve) => {
+      const box = document.createElement('div');
+      box.className = 'modal';
+      box.setAttribute('role', 'dialog');
+      box.setAttribute('aria-modal', 'true');
+      box.innerHTML = `<div class="modal-box konum-onay">
+        <h2>📍 Konum kullanımı</h2>
+        <p>Cepte Radar, <b>uygulama açıkken</b> konumunuzu şunlar için kullanır:</p>
+        <ul>
+          <li>Yaklaşan hız kamerası, hız koridoru ve tehlikeli noktalar için sesli uyarı,</li>
+          <li>Bulunduğunuz yolun hız sınırını ve hızınızı göstermek,</li>
+          <li>"Konumum" ile bulunduğunuz ili seçmek.</li>
+        </ul>
+        <p>Konumunuz <b>kaydedilmez</b> ve sunucularımıza gönderilmez. Çevredeki yol bilgisini almak için yaklaşık
+        konum OpenStreetMap servisine iletilir. Ayrıntılar: <a href="gizlilik.html" target="_blank" rel="noopener">Gizlilik Politikası</a>.</p>
+        <div class="konum-onay-btn">
+          <button type="button" class="btn btn-ghost" data-cevap="0">Vazgeç</button>
+          <button type="button" class="btn btn-primary" data-cevap="1">Devam et</button>
+        </div>
+      </div>`;
+      document.body.appendChild(box);
+      box.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-cevap]');
+        if (!b) return;
+        const ok = b.dataset.cevap === '1';
+        if (ok) save(CONSENT_KEY, true);
+        box.remove();
+        resolve(ok);
+      });
+    });
+  }
+
   async function startDrive() {
+    if (!(await locationConsent())) return;
     const btn = $('btn-drive');
     btn.classList.add('active');
     btn.textContent = '■ Sürüşü Bitir';
@@ -790,7 +827,7 @@
     endSel.value = a;
     syncDisables();
   });
-  $('btn-locate').addEventListener('click', locateStart);
+  $('btn-locate').addEventListener('click', async () => { if (await locationConsent()) locateStart(); });
   $('btn-drive').addEventListener('click', () => ($('btn-drive').classList.contains('active') ? stopDrive() : startDrive()));
   $('recent-routes').addEventListener('click', async (e) => {
     const b = e.target.closest('[data-route]');

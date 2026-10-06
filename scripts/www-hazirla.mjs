@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'www');
-const ITEMS = ['index.html', 'app.html', 'main.html', 'manifest.json', 'sw.js', 'css', 'js', 'vendor', 'assets', 'iller_kucuk'];
+const ITEMS = ['index.html', 'app.html', 'main.html', 'gizlilik.html', 'manifest.json', 'sw.js', 'css', 'js', 'vendor', 'assets', 'iller_kucuk'];
 
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT);
