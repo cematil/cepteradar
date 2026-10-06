@@ -15,6 +15,8 @@
 //
 // İstediğiniz zaman Ctrl+C ile durdurabilirsiniz; tekrar çalıştırınca kaldığı yerden devam eder.
 
+import fs from 'node:fs';
+import path from 'node:path';
 import { chromium } from 'playwright';
 import { loadIller, loadCity, slug, donustur, kaydet, indeksle } from './lib-veri.mjs';
 
@@ -53,18 +55,65 @@ console.log(`${isler.length} kalkış ili, ${toplam} rota indirilecek (${paralel
 let bitti = 0, hata = 0;
 const baslangic = Date.now();
 
-async function sayfaHazirla(page) {
-  await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
-  await page.waitForFunction(() => [...document.querySelectorAll('select')].filter((s) => s.options.length >= 70).length >= 2, null, { timeout: 60000 });
+let ilkAdim = true; // ilk rotada adımları ayrıntılı yaz
+const adim = (m) => { if (ilkAdim) console.log(`  · ${m}`); };
+
+// Sorun olursa ekran görüntüsü, sayfa kaynağı ve seçim kutusu özetini hata-raporu/ klasörüne yazar.
+async function taniKaydet(page, neden) {
+  try {
+    const dir = path.join(process.cwd(), 'hata-raporu');
+    fs.mkdirSync(dir, { recursive: true });
+    await page.screenshot({ path: path.join(dir, 'ekran.png'), fullPage: true }).catch(() => {});
+    const ozet = [];
+    for (const f of page.frames()) {
+      const bilgi = await f.evaluate(() => ({
+        url: location.href,
+        selectler: [...document.querySelectorAll('select')].map((s) => ({
+          id: s.id, name: s.name, gorunur: !!(s.offsetWidth || s.offsetHeight), secenek: s.options.length,
+          ilkler: [...s.options].slice(0, 4).map((o) => `${o.value}=${o.textContent.trim()}`),
+        })),
+        butonlar: [...document.querySelectorAll('button,a,input[type=button],input[type=submit]')]
+          .map((b) => (b.innerText || b.value || '').trim()).filter((t) => /rota/i.test(t)),
+        jquery: !!window.jQuery,
+      })).catch((e) => ({ url: f.url(), hata: e.message }));
+      ozet.push(bilgi);
+      if (f === page.mainFrame()) fs.writeFileSync(path.join(dir, 'sayfa.html'), await f.content().catch(() => ''));
+    }
+    fs.writeFileSync(path.join(dir, 'bilgi.json'), JSON.stringify({ neden, zaman: new Date().toISOString(), cerceveler: ozet }, null, 2));
+    console.log(`\n  Tanı bilgileri kaydedildi: ${dir} (ekran.png, bilgi.json, sayfa.html)`);
+  } catch (e) {
+    console.log(`  Tanı kaydedilemedi: ${e.message}`);
+  }
 }
 
-// Sayfadaki seçim kutuları: [kalkışİl, kalkışİlçe, varışİl, varışİlçe] sıra numaraları
-async function secimKutulari(page) {
-  return page.evaluate(() => {
+// İl seçim kutularının bulunduğu çerçeveyi bulur (form bir iframe içinde olabilir).
+async function formuBul(page, sureMs = 60000) {
+  const bitis = Date.now() + sureMs;
+  while (Date.now() < bitis) {
+    for (const f of page.frames()) {
+      const n = await f.evaluate(() => [...document.querySelectorAll('select')].filter((s) => s.options.length >= 70).length).catch(() => 0);
+      if (n >= 2) return f;
+    }
+    await page.waitForTimeout(1000);
+  }
+  return null;
+}
+
+async function sayfaHazirla(page) {
+  adim('İçişleri sayfası açılıyor…');
+  await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
+  const frame = await formuBul(page);
+  if (!frame) {
+    await taniKaydet(page, 'İl seçim kutuları bulunamadı');
+    throw new Error('Sayfada il seçim kutuları bulunamadı');
+  }
+  const kutular = await frame.evaluate(() => {
     const all = [...document.querySelectorAll('select')];
     const il = all.map((s, i) => (s.options.length >= 70 ? i : -1)).filter((i) => i >= 0).slice(0, 2);
     return [il[0], il[0] + 1, il[1], il[1] + 1];
   });
+  adim(`Form bulundu (seçim kutuları: ${kutular.join(', ')})`);
+  return { frame, kutular };
 }
 
 const trSlug = `(s) => String(s||'').trim().toLocaleLowerCase('tr').replace(/ç/g,'c').replace(/ğ/g,'g').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ş/g,'s').replace(/ü/g,'u').replace(/[^a-z]/g,'')`;
@@ -80,63 +129,100 @@ const MERKEZ_ILCE = {
   tekirdag: 'suleymanpasa', trabzon: 'ortahisar', van: 'ipekyolu',
 };
 
-async function ilSec(page, selIndex, ilceIndex, il) {
-  const sel = page.locator('select').nth(selIndex);
-  const ilce = page.locator('select').nth(ilceIndex);
-  const idx = await sel.evaluate((s, [id, fn]) => {
+// Seçim kutusunda seçeneği seçer; kutu gizli (select2 vb.) olsa da çalışır.
+async function secenekSec(frame, kutu, hedefler) {
+  return frame.evaluate(([i, hedefler, fn]) => {
     const slugF = eval(fn);
-    return [...s.options].findIndex((o) => slugF(o.textContent) === id);
-  }, [il.id, trSlug]);
-  if (idx < 0) throw new Error(`${il.ad} seçeneklerde bulunamadı`);
-  const once = await ilce.evaluate((s) => [...s.options].map((o) => o.value).join('|'));
-  const ilceCevabi = page.waitForResponse((r) => /GetDistricts/i.test(r.url()), { timeout: 20000 }).catch(() => null);
-  await sel.selectOption({ index: idx });
-  await ilceCevabi;
-  await page.waitForFunction(([i, eski]) => {
     const s = document.querySelectorAll('select')[i];
-    return s && s.options.length > 1 && [...s.options].map((o) => o.value).join('|') !== eski;
-  }, [ilceIndex, once], { timeout: 20000 }).catch(() => {});
-  // İlçe: büyükşehir merkez ilçesi ya da "Merkez", yoksa ilk gerçek seçenek
-  const ilceIdx = await ilce.evaluate((s, [hedef, fn]) => {
-    const slugF = eval(fn);
     const opts = [...s.options];
-    for (const ad of [hedef, 'merkez']) {
-      const m = ad ? opts.findIndex((o) => slugF(o.textContent) === ad) : -1;
-      if (m >= 0) return m;
+    let idx = -1;
+    for (const h of hedefler) {
+      if (h === '*ilk*') idx = opts.findIndex((o) => o.value && !/seçiniz|seciniz/i.test(o.textContent));
+      else idx = opts.findIndex((o) => slugF(o.textContent) === h);
+      if (idx >= 0) break;
     }
-    return opts.findIndex((o) => o.value && !/seçiniz|seciniz/i.test(o.textContent));
-  }, [MERKEZ_ILCE[il.id] || '', trSlug]);
-  if (ilceIdx >= 0) await ilce.selectOption({ index: ilceIdx });
+    if (idx < 0) return null;
+    s.selectedIndex = idx;
+    if (window.jQuery) window.jQuery(s).trigger('change');
+    else { s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })); }
+    return opts[idx].textContent.trim();
+  }, [kutu, hedefler, trSlug]);
 }
 
-async function rotaCek(page, kutular, a, b) {
-  await ilSec(page, kutular[0], kutular[1], a);
-  await ilSec(page, kutular[2], kutular[3], b);
-  const cevap = page.waitForResponse((r) => /CreateRoute/i.test(r.url()), { timeout: 120000 });
-  await page.getByText(/ROTA OLUŞTUR/i).first().click();
-  const res = await cevap;
-  const json = await res.json();
-  if (!json || json.success === false || !json.data) throw new Error(json?.message || 'Boş cevap');
-  return donustur(json);
+const secenekler = (frame, kutu) => frame.evaluate((i) => [...document.querySelectorAll('select')[i].options].map((o) => o.value).join('|'), kutu);
+
+async function ilSec(page, frame, ilKutu, ilceKutu, il) {
+  const once = await secenekler(frame, ilceKutu);
+  const secilen = await secenekSec(frame, ilKutu, [il.id]);
+  if (!secilen) throw new Error(`${il.ad} il listesinde bulunamadı`);
+  adim(`İl seçildi: ${secilen}`);
+  const bitis = Date.now() + 20000;
+  let simdi = once;
+  while (Date.now() < bitis) {
+    simdi = await secenekler(frame, ilceKutu);
+    if (simdi !== once && simdi.split('|').length > 1) break;
+    await page.waitForTimeout(250);
+  }
+  if (simdi === once && once.split('|').length <= 1) throw new Error(`${il.ad} için ilçe listesi yüklenmedi`);
+  const ilce = await secenekSec(frame, ilceKutu, [MERKEZ_ILCE[il.id] || 'merkez', 'merkez', '*ilk*']);
+  adim(`İlçe seçildi: ${ilce}`);
+}
+
+async function butonaBas(page, frame) {
+  const aday = frame.locator('button, a, input[type=button], input[type=submit], [role=button]')
+    .filter({ hasText: /rota oluştur/i }).first();
+  if (await aday.count()) {
+    await aday.click({ force: true, timeout: 10000 });
+    return;
+  }
+  const tiklandi = await frame.evaluate(() => {
+    const el = [...document.querySelectorAll('button,a,input,[role=button],div,span')]
+      .find((e) => /rota oluştur/i.test((e.innerText || e.value || '').trim()) && (e.innerText || e.value || '').trim().length < 40);
+    if (el) { el.click(); return true; }
+    return false;
+  });
+  if (!tiklandi) throw new Error('"ROTA OLUŞTUR" düğmesi bulunamadı');
+}
+
+async function rotaCek(page, form, a, b) {
+  const { frame, kutular } = form;
+  await ilSec(page, frame, kutular[0], kutular[1], a);
+  await ilSec(page, frame, kutular[2], kutular[3], b);
+  const cevap = page.waitForResponse((r) => /CreateRoute/i.test(r.url()), { timeout: 90000 });
+  await butonaBas(page, frame);
+  adim('"ROTA OLUŞTUR"a basıldı, cevap bekleniyor…');
+  const res = await cevap.catch(() => { throw new Error('Site 90 saniyede rota cevabı vermedi'); });
+  const json = await res.json().catch(() => null);
+  if (!json || json.success === false || !json.data) throw new Error(json?.message || `Beklenmeyen cevap (HTTP ${res.status()})`);
+  const kayit = donustur(json);
+  adim(`Cevap alındı: ${kayit.kalkis_il}/${kayit.kalkis_ilce} → ${kayit.varis_il}/${kayit.varis_ilce}, ${kayit.radar_sayisi} radar`);
+  ilkAdim = false;
+  return kayit;
 }
 
 async function calisan(browser, kuyruk) {
   const page = await browser.newPage();
-  await sayfaHazirla(page);
-  let kutular = await secimKutulari(page);
+  let form = await sayfaHazirla(page);
   while (kuyruk.length) {
     const { kalkis, hedefler } = kuyruk.shift();
     const tampon = [];
     for (const hedef of hedefler) {
       for (let deneme = 1; deneme <= 3; deneme++) {
         try {
-          tampon.push(await rotaCek(page, kutular, kalkis, hedef));
+          tampon.push(await rotaCek(page, form, kalkis, hedef));
           break;
         } catch (e) {
-          if (deneme === 3) { hata++; console.warn(`  ! ${kalkis.ad} → ${hedef.ad}: ${e.message}`); break; }
+          console.warn(`\n  ! ${kalkis.ad} → ${hedef.ad} (deneme ${deneme}/3): ${e.message}`);
+          if (deneme === 3) {
+            hata++;
+            if (hata === 1) await taniKaydet(page, `${kalkis.ad} → ${hedef.ad}: ${e.message}`);
+            if (hata >= 5 && bitti < 10) {
+              throw new Error('Art arda hata alınıyor; hata-raporu klasöründeki bilgileri gönderin.');
+            }
+            break;
+          }
           await page.waitForTimeout(3000 * deneme);
-          await sayfaHazirla(page).catch(() => {});
-          kutular = await secimKutulari(page).catch(() => kutular);
+          form = await sayfaHazirla(page).catch(() => form);
         }
       }
       bitti++;
@@ -170,7 +256,14 @@ process.on('SIGINT', async () => {
 });
 
 const kuyruk = isler.slice();
-await Promise.all(Array.from({ length: Math.min(paralel, kuyruk.length) }, () => calisan(browser, kuyruk)));
-await browser.close();
+let durdu = false;
+try {
+  await Promise.all(Array.from({ length: Math.min(paralel, kuyruk.length) }, () => calisan(browser, kuyruk)));
+} catch (e) {
+  durdu = true;
+  console.error(`\nDURDU: ${e.message}`);
+  console.error('Lütfen bu penceredeki yazıları ve hata-raporu klasörünü (ekran.png, bilgi.json) gönderin.');
+}
+await browser.close().catch(() => {});
 await bitir();
-console.log('Bitti. Değişiklikleri GitHub\'a göndermeyi unutmayın (git add iller_kucuk && git commit && git push).');
+if (!durdu) console.log('Bitti. Değişiklikleri GitHub\'a göndermeyi unutmayın (git add iller_kucuk && git commit && git push).');
