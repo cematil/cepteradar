@@ -112,6 +112,8 @@
       <div class="legend-body">
         <div><i class="lg-line bg-blue"></i> Karayolu Rotası</div>
         <div><i class="lg-line lg-dash"></i> Hız Koridoru</div>
+        <div><i class="lg-dot lg-blink bg-red"></i> Radarlı Denetim (il bazında)</div>
+        <div><i class="lg-dot lg-blink" style="background:#0891b2"></i> Kontrol Noktası (il bazında)</div>
         <div><i class="lg-sq bg-amber"></i> Yol Çalışması / Kapanma</div>
         <div><i class="speed-limit-sign sm">82</i> Hız Limiti Tabelası</div>
         <div><i class="lg-dot lg-start"></i> Kalkış / <i class="lg-dot lg-end"></i> Varış</div>
@@ -296,12 +298,31 @@
       clearRoute();
       renderStatus(from, to, found);
 
+      // Güzergah analizi: rotadaki gerçek hız koridorları ve il bazında denetim bölgeleri
+      const dense = Veri.densify(coords);
+      const nearestIndex = Veri.buildRouteIndex(dense);
+      const realOwn = (rec ? (rec.hiz_koridorlari || []) : []).filter((c) => Array.isArray(c.coords) && c.coords.length > 1 && !Veri.isStraightLine(c.coords));
+      const onRoute = Veri.corridorsOnRoute(dense, nearestIndex, (await Veri.loadCorridors()).concat(realOwn));
+      if (seq !== requestSeq) return;
+      const seen = new Set();
+      const mapCorridors = onRoute.filter((c) => {
+        const k = c.id != null ? `id:${c.id}` : `${c.name}|${c.coords[0]}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+      // Listede: kayıttaki koridorlar (geometrisi olmasa da) + haritada bulunanlar
+      const listed = mapCorridors.slice();
+      (rec ? (rec.hiz_koridorlari || []) : []).forEach((c) => {
+        if (!listed.some((x) => (c.id != null && x.id === c.id) || x.name === c.name)) listed.push(c);
+      });
+
       const radar = rec ? toInt(rec.radar_sayisi) : 0;
       const kontrol = rec ? toInt(rec.kontrol_sayisi) : 0;
-      const koridor = rec ? toInt(rec.koridor_sayisi) : 0;
+      const koridor = rec ? toInt(rec.koridor_sayisi) : mapCorridors.length;
       $('stat-radar').textContent = rec ? radar : '—';
       $('stat-kontrol').textContent = rec ? kontrol : '—';
-      $('stat-koridor').textContent = rec ? koridor : '—';
+      $('stat-koridor').textContent = koridor;
       setRisk(Math.min(99, Math.round(((radar + kontrol + koridor) / 45) * 100)), !!rec);
 
       const meta = [`${Math.round(distKm)} km${approx ? ' (yaklaşık)' : ''}`];
@@ -311,25 +332,58 @@
       setWeather('start', from, '📍', wStart);
       setWeather('end', to, '🎯', wEnd);
 
-      const corridors = rec ? (rec.hiz_koridorlari || []) : [];
-      renderCorridors(corridors);
-      renderBreakdown(rec ? (rec.gecen_iller || []) : []);
+      renderCorridors(listed);
+      const breakdown = rec ? (rec.gecen_iller || []) : [];
+      renderBreakdown(breakdown);
 
       // Harita çizimi
       const line = addLayer(L.polyline(coords, { color: '#2563eb', weight: 6, opacity: 0.85, dashArray: approx ? '4 8' : null }));
       addLayer(L.marker(coords[0], { icon: pinIcon('pin-start') }).bindPopup(`<b>📍 Kalkış:</b> ${esc(from.ad)}`));
       addLayer(L.marker(coords[coords.length - 1], { icon: pinIcon('pin-end') }).bindPopup(`<b>🎯 Varış:</b> ${esc(to.ad)}`));
 
-      corridors.forEach((c, i) => {
-        const cc = Array.isArray(c.coords) ? c.coords : [];
-        if (cc.length < 2 || Veri.isStraightLine(cc)) return; // gerçek geometrisi olmayan koridor çizilmez
+      mapCorridors.forEach((c, i) => {
+        const cc = c.coords;
         const limit = toInt(c.speed_limit || c.speedLimit) || 82;
-        addLayer(L.polyline(cc, { color: '#ef4444', weight: 8, opacity: 0.9, dashArray: '8 10' }))
-          .bindPopup(`<b>⚡ ${esc(c.name || 'Hız Koridoru')}</b><br>Limit: ${limit} km/s${c.length ? `<br>Uzunluk: ${esc(c.length)} km` : ''}`);
+        const popup = `<b>⚡ ${esc(c.name || 'Hız Koridoru')}</b><br>Limit: ${limit} km/s${c.length ? `<br>Uzunluk: ${esc(c.length)} km` : ''}`;
+        addLayer(L.polyline(cc, { color: '#ef4444', weight: 8, opacity: 0.95, dashArray: '10 8', className: 'blink-line' })).bindPopup(popup);
         const mid = cc[Math.floor(cc.length / 2)];
-        addLayer(L.marker(mid, { icon: L.divIcon({ className: '', html: `<div class="speed-limit-sign">${limit}</div>`, iconSize: [28, 28], iconAnchor: [14, 14] }) }));
-        warnPoints.push({ name: `${limit} kilometre hız sınırlı hız koridoru`, coords: cc[0], key: `k${i}` });
+        addLayer(L.marker(mid, { icon: L.divIcon({ className: '', html: `<div class="speed-limit-sign blink">${limit}</div>`, iconSize: [30, 30], iconAnchor: [15, 15] }) }).bindPopup(popup));
+        warnPoints.push({
+          key: `k${i}`, coords: cc[0],
+          say: `Dikkat! ${WARN_DISTANCE_KM} kilometre sonra ${limit} kilometre hız sınırlı hız koridoru başlıyor.`,
+          text: `⚡ ${WARN_DISTANCE_KM} km sonra hız koridoru (${limit} km/s)`,
+        });
       });
+
+      // İçişleri verisi il bazındadır (kesin nokta yok): radar ve kontrol işaretleri,
+      // rotanın o ilden geçen bölümünün ortasına yerleştirilir.
+      if (breakdown.length) {
+        const segs = Veri.provinceSegments(dense, ILLER);
+        breakdown.forEach((it, i) => {
+          const il = ilById.get(Veri.slug(it.City || it.name));
+          const r = toInt(it.Radarli ?? it.radarli);
+          const rs = toInt(it.Radarsiz ?? it.radarsiz);
+          if (!il || r + rs === 0) return;
+          let s = segs.get(il.id);
+          if (!s) { const n = nearestIndex([il.lat, il.lon], 60); if (n < 0) return; s = { first: n, last: n }; }
+          const at = (f) => dense[Math.round(s.first + (s.last - s.first) * f)];
+          const note = '<br><small>Konum il bazında yaklaşıktır; kesin denetim noktası değildir.</small>';
+          if (r > 0) {
+            addLayer(L.marker(at(0.4), { icon: L.divIcon({ className: '', html: `<div class="blink-marker radar"><span>${r}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 500 }))
+              .bindPopup(`<b>📷 ${esc(il.ad)} — ${r} radarlı denetim</b>${note}`);
+          }
+          if (rs > 0) {
+            addLayer(L.marker(at(0.6), { icon: L.divIcon({ className: '', html: `<div class="blink-marker kontrol"><span>${rs}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 500 }))
+              .bindPopup(`<b>👮 ${esc(il.ad)} — ${rs} radarsız kontrol noktası</b>${note}`);
+          }
+          const parts = [r && `${r} radarlı`, rs && `${rs} radarsız`].filter(Boolean).join(', ');
+          warnPoints.push({
+            key: `il${i}`, coords: dense[s.first],
+            say: `Dikkat! ${WARN_DISTANCE_KM} kilometre sonra ${il.ad} il sınırları. Güzergahta ${parts} denetim noktası bulunuyor.`,
+            text: `📷 ${il.ad}: ${parts} denetim noktası`,
+          });
+        });
+      }
 
       map.fitBounds(line.getBounds(), { padding: [30, 30] });
       setTimeout(() => map.invalidateSize(), 150);
@@ -390,8 +444,8 @@
       if (!warned.has(pt.key) && distanceKm(lat, lon, pt.coords[0], pt.coords[1]) <= WARN_DISTANCE_KM) {
         // Birbirine çok yakın noktalar (ör. aynı yerden başlayan iki koridor) için tek uyarı ver.
         warnPoints.forEach((o) => { if (distanceKm(pt.coords[0], pt.coords[1], o.coords[0], o.coords[1]) < 0.5) warned.add(o.key); });
-        speak(`Dikkat! ${WARN_DISTANCE_KM} kilometre sonra ${pt.name} başlıyor.`);
-        toast(`⚠️ ${WARN_DISTANCE_KM} km sonra ${pt.name}`);
+        speak(pt.say);
+        toast(pt.text);
       }
     });
 

@@ -90,12 +90,32 @@ for (const [from, routes] of updates) {
 // index.json: hangi kalkış ilinden hangi varış illerine veri olduğunu listeler.
 const index = {};
 for (const f of fs.readdirSync(DATA_DIR).sort()) {
-  if (!f.endsWith('.json') || f === 'index.json') continue;
+  if (!f.endsWith('.json') || f === 'index.json' || f === 'koridorlar.json') continue;
   const id = f.slice(0, -5);
   const targets = [...new Set(loadCity(id).map((r) => slug(r.varis_il)).filter(Boolean))].sort();
   if (targets.length) index[id] = targets;
 }
 fs.writeFileSync(path.join(DATA_DIR, 'index.json'), JSON.stringify(index));
+
+// koridorlar.json: tüm dosyalardaki gerçek geometrili hız koridorlarının tekil listesi.
+// Uygulama, verisi olmayan rotalarda da güzergah üzerindeki koridorları buradan bulur.
+const isStraightLine = (c) => c.length < 3 || c.every((p, i) => i === 0 ||
+  (Math.abs(p[0] - c[i - 1][0] - (c[1][0] - c[0][0])) < 1e-3 && Math.abs(p[1] - c[i - 1][1] - (c[1][1] - c[0][1])) < 1e-3));
+const corridors = new Map();
+for (const id of fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.json') && f !== 'index.json' && f !== 'koridorlar.json').map((f) => f.slice(0, -5))) {
+  for (const r of loadCity(id)) {
+    for (const k of asList(r.hiz_koridorlari)) {
+      const c = Array.isArray(k.coords) ? k.coords : [];
+      if (c.length < 2 || isStraightLine(c)) continue;
+      const key = k.id != null ? `id:${k.id}` : `${k.name}|${c[0]}|${c[c.length - 1]}`;
+      if (!corridors.has(key)) {
+        corridors.set(key, { id: k.id ?? null, name: k.name, province: k.province || '', speed_limit: k.speed_limit, length: k.length, coords: roundCoords(c) });
+      }
+    }
+  }
+}
+fs.writeFileSync(path.join(DATA_DIR, 'koridorlar.json'), JSON.stringify([...corridors.values()]));
+console.log(`✓ koridorlar.json: ${corridors.size} gerçek hız koridoru`);
 
 const total = Object.values(index).reduce((n, t) => n + t.length, 0);
 console.log(`\n${added} kayıt işlendi. Veri olan kalkış ili: ${Object.keys(index).length}/81, toplam rota: ${total}/6480`);

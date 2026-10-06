@@ -304,3 +304,26 @@ code { background: #1e293b; padding: 0 4px; border-radius: 4px; color: #fcd34d; 
   .modal-box { border-radius: 20px; }
   .tips { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* Yanıp sönen harita işaretleri: radar, kontrol noktası, hız koridoru */
+@keyframes blinkFade { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+@keyframes blinkPulse {
+  0% { box-shadow: 0 0 0 0 var(--glow); }
+  70% { box-shadow: 0 0 0 14px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.blink { animation: blinkFade 1s ease-in-out infinite; }
+.leaflet-overlay-pane path.blink-line { animation: blinkFade 1.1s ease-in-out infinite; }
+.blink-marker {
+  --glow: rgba(239, 68, 68, .8);
+  width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center;
+  border: 3px solid #fff; color: #fff; font: 800 12px/1 Arial, sans-serif;
+  animation: blinkPulse 1.2s infinite, blinkFade 1.2s ease-in-out infinite;
+}
+.blink-marker.radar { background: var(--red); }
+.blink-marker.kontrol { --glow: rgba(34, 211, 238, .8); background: #0891b2; }
+.lg-blink { width: 12px; height: 12px; border: 2px solid #fff; animation: blinkFade 1s infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .blink, .blink-marker, .lg-blink, .leaflet-overlay-pane path.blink-line { animation: none; }
+}

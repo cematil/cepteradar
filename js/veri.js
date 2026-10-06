@@ -116,5 +116,95 @@
     };
   }
 
-  window.Veri = { slug, loadIndex, hasRoute, findRoute, isStraightLine, osrmRoute, weather };
+  // ------------------------------------------------------------ GÜZERGAH ANALİZİ
+  let corridorsPromise = null;
+  function loadCorridors() {
+    if (!corridorsPromise) corridorsPromise = fetchJson(`${DATA_DIR}/koridorlar.json`).then(asList).catch(() => []);
+    return corridorsPromise;
+  }
+
+  // Yaklaşık mesafe (km) — kısa mesafelerde yeterince hassas ve hızlı.
+  function fastKm(a, b) {
+    const x = (b[1] - a[1]) * Math.cos(((a[0] + b[0]) / 2) * Math.PI / 180);
+    const y = b[0] - a[0];
+    return Math.sqrt(x * x + y * y) * 111.32;
+  }
+
+  // Noktalar arası en fazla `stepKm` olacak şekilde rotayı sıklaştırır.
+  function densify(coords, stepKm = 0.4) {
+    const out = [];
+    for (let i = 0; i < coords.length; i++) {
+      const p = coords[i];
+      if (i > 0) {
+        const q = coords[i - 1];
+        const n = Math.floor(fastKm(q, p) / stepKm);
+        for (let k = 1; k < n; k++) out.push([q[0] + (p[0] - q[0]) * k / n, q[1] + (p[1] - q[1]) * k / n]);
+      }
+      out.push(p);
+    }
+    return out;
+  }
+
+  const CELL = 0.02; // ~2 km'lik ızgara hücresi
+  const cellKey = (p) => `${Math.floor(p[0] / CELL)}:${Math.floor(p[1] / CELL)}`;
+
+  function buildRouteIndex(dense) {
+    const grid = new Map();
+    dense.forEach((p, i) => {
+      const k = cellKey(p);
+      if (!grid.has(k)) grid.set(k, []);
+      grid.get(k).push(i);
+    });
+    // p noktasına `maxKm` içindeki en yakın rota noktasının sırası (yoksa -1)
+    return function nearestIndex(p, maxKm) {
+      const r = Math.floor(p[0] / CELL), c = Math.floor(p[1] / CELL);
+      let best = -1, bestD = maxKm;
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        for (const i of grid.get(`${r + dr}:${c + dc}`) || []) {
+          const d = fastKm(p, dense[i]);
+          if (d <= bestD) { bestD = d; best = i; }
+        }
+      }
+      return best;
+    };
+  }
+
+  // Güzergah üzerinde, aynı yönde ilerleyen hız koridorlarını bulur.
+  function corridorsOnRoute(dense, nearestIndex, corridors) {
+    const hits = [];
+    for (const k of corridors) {
+      const c = k.coords || [];
+      if (c.length < 2) continue;
+      const step = Math.max(1, Math.floor(c.length / 12));
+      const sample = c.filter((_, i) => i % step === 0).concat([c[c.length - 1]]);
+      const idx = sample.map((p) => nearestIndex(p, 0.6));
+      const matched = idx.filter((i) => i >= 0);
+      if (matched.length < sample.length * 0.8) continue;
+      if (matched[0] >= matched[matched.length - 1]) continue; // ters yön
+      hits.push({ ...k, routeIndex: matched[0] });
+    }
+    return hits.sort((a, b) => a.routeIndex - b.routeIndex);
+  }
+
+  // Rotayı geçtiği illere böler: her ilin rota üzerindeki [ilk, son] nokta sırası.
+  function provinceSegments(dense, iller) {
+    const seg = new Map();
+    const stride = Math.max(1, Math.floor(dense.length / 1500));
+    for (let i = 0; i < dense.length; i += stride) {
+      let best = null, bestD = Infinity;
+      for (const il of iller) {
+        const d = fastKm(dense[i], [il.lat, il.lon]);
+        if (d < bestD) { bestD = d; best = il; }
+      }
+      const s = seg.get(best.id);
+      if (!s) seg.set(best.id, { first: i, last: i });
+      else s.last = i;
+    }
+    return seg;
+  }
+
+  window.Veri = {
+    slug, loadIndex, hasRoute, findRoute, isStraightLine, osrmRoute, weather,
+    loadCorridors, densify, buildRouteIndex, corridorsOnRoute, provinceSegments,
+  };
 })();
