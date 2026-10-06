@@ -119,6 +119,15 @@ async function formuBul(page, sureMs = 60000) {
 
 async function sayfaHazirla(page) {
   adim('İçişleri sayfası açılıyor…');
+  // Site hata mesajlarını alert() penceresiyle gösteriyor; mesaj okunup pencere kapatılır.
+  if (!page._uyariDinleniyor) {
+    page._uyariDinleniyor = true;
+    page.on('dialog', (d) => {
+      page._sonUyari = d.message();
+      console.log(`   · Site uyarısı: ${d.message()}`);
+      d.dismiss().catch(() => {});
+    });
+  }
   await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
   const frame = await formuBul(page);
   if (!frame) {
@@ -131,6 +140,13 @@ async function sayfaHazirla(page) {
     return [il[0], il[0] + 1, il[1], il[1] + 1];
   });
   adim(`Form bulundu (seçim kutuları: ${kutular.join(', ')})`);
+  // Çerez çubuğu "ROTA OLUŞTUR" düğmesinin üstünü kapatıyor; kabul edip kapatılır.
+  await frame.evaluate(() => {
+    const kabul = document.querySelector('.acceptcookies');
+    if (kabul) kabul.click();
+    const cubuk = kabul && kabul.closest('.alert, .cookiealert, [class*=cookie]');
+    if (cubuk) cubuk.style.display = 'none';
+  }).catch(() => {});
   return { frame, kutular };
 }
 
@@ -186,30 +202,36 @@ async function ilSec(page, frame, ilKutu, ilceKutu, il) {
   adim(`İlçe seçildi: ${ilce}`);
 }
 
+// Düğmeye sitenin kendi tıklama işleyicisiyle basılır (fare koordinatı kullanılmaz,
+// böylece üstte duran çerez çubuğu vb. tıklamayı yutamaz).
 async function butonaBas(page, frame) {
-  const aday = frame.locator('button, a, input[type=button], input[type=submit], [role=button]')
-    .filter({ hasText: /rota oluştur/i }).first();
-  if (await aday.count()) {
-    await aday.click({ force: true, timeout: 10000 });
-    return;
-  }
-  const tiklandi = await frame.evaluate(() => {
-    const el = [...document.querySelectorAll('button,a,input,[role=button],div,span')]
-      .find((e) => /rota oluştur/i.test((e.innerText || e.value || '').trim()) && (e.innerText || e.value || '').trim().length < 40);
-    if (el) { el.click(); return true; }
-    return false;
+  const sonuc = await frame.evaluate(() => {
+    const el = document.querySelector('#createRouteBtn') ||
+      [...document.querySelectorAll('button,a,input,[role=button]')]
+        .find((e) => /rota oluştur/i.test((e.innerText || e.value || '').trim()));
+    if (!el) return 'yok';
+    el.disabled = false;
+    el.scrollIntoView({ block: 'center' });
+    if (window.jQuery) window.jQuery(el).trigger('click');
+    else el.click();
+    return 'tamam';
   });
-  if (!tiklandi) throw new Error('"ROTA OLUŞTUR" düğmesi bulunamadı');
+  if (sonuc === 'yok') throw new Error('"ROTA OLUŞTUR" düğmesi bulunamadı');
 }
 
 async function rotaCek(page, form, a, b) {
   const { frame, kutular } = form;
   await ilSec(page, frame, kutular[0], kutular[1], a);
   await ilSec(page, frame, kutular[2], kutular[3], b);
+  page._sonUyari = null;
   const cevap = page.waitForResponse((r) => /CreateRoute/i.test(r.url()), { timeout: 90000 });
   await butonaBas(page, frame);
   adim('"ROTA OLUŞTUR"a basıldı, cevap bekleniyor (en fazla 90 sn)…');
-  const res = await cevap.catch(() => { throw new EngelHatasi('Site 90 saniyede rota cevabı vermedi'); });
+  const res = await cevap.catch(() => {
+    const uyari = page._sonUyari;
+    if (uyari && /seçim/i.test(uyari)) throw new Error(`Site: ${uyari}`);
+    throw new EngelHatasi(uyari ? `Site uyarısı: ${uyari}` : 'Site 90 saniyede rota cevabı vermedi');
+  });
   if ([403, 429, 503].includes(res.status())) throw new EngelHatasi(`Site sorguyu reddetti (HTTP ${res.status()})`);
   const json = await res.json().catch(() => null);
   if (!json || json.success === false || !json.data) {
