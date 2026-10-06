@@ -1,145 +1,200 @@
 <div align="center">
 
-  <!-- 🟢 CEPTE RADAR LOGO -->
   <img src="assets/logo.svg" alt="Cepte Radar Logosu" width="220" height="220">
 
-  <h1>🛡️ Cepte Radar — Canlı Trafik, Radar & Yol Durumu Takip Sistemi</h1>
+  <h1>Cepte Radar</h1>
 
-  <p>
-    <b>Karayolları Genel Müdürlüğü (KGM) verilerine ve canlı coğrafi analizlere dayalı radar, hız koridoru, trafik denetim alanları ve yol çalışma takip platformu.</b>
-  </p>
+  <p><b>İller arası yolculukta radar, kontrol noktası, hız koridoru ve yol tehlikelerini önceden gösteren,<br>
+  yolda sesli uyarı veren ücretsiz web sitesi ve Android uygulaması.</b></p>
 
 </div>
 
 ---
 
-## 🌟 Proje Modülleri ve Logoları
+## 🎯 Programın Amacı
 
-Uygulama iki temel harita modülünden oluşmaktadır:
+Türkiye'de iki il arasında yola çıkacak sürücünün, güzergahında neyle karşılaşacağını **yola çıkmadan
+önce görmesini** ve **yolda zamanında uyarılmasını** sağlamak:
 
-### 1. Cepte Radar Ana Modülü (`index.html`)
-Canlı radar noktalarını, hız koridorlarını, trafik denetim alanlarını, hava durumunu, il bazlı denetim dağılımını ve sürücü risk skorunu sunan ana modül.
+- Güzergahta kaç **radar denetimi**, **trafik kontrol noktası** ve **hız koridoru** olduğu (İçişleri Bakanlığı verisi),
+- **Hız kameralarının** gerçek konumları (OpenStreetMap),
+- **Hemzemin geçit, okul geçidi, tehlikeli viraj, heyelan** gibi riskli noktalar,
+- Bulunulan yolun **hız sınırı** ve aşıldığında uyarı,
+- KGM'nin bildirdiği **yol çalışmaları ve kapalı yollar**,
+- Kalkış ve varış ilinde **anlık hava durumu**.
 
-### 2. KGM Yol Bakım Onarım & Kapalı Yollar Modülü (`main.html`)
-Karayolları Genel Müdürlüğü (KGM) canlı verileriyle Türkiye genelindeki aktif yol çalışmalarını, şantiyeleri ve kapalı geçitleri gösteren harita modülü.
-
-<div align="center">
-  <br>
-
-  <!-- 🚧 KGM YOL BAKIM & ONARIM LOGO -->
-  <img src="assets/logo-work.svg" alt="Yol Bakım Onarım Logosu" width="200" height="200">
-  <br>
-  <sub><i>KGM Canlı Yol Çalışmaları & Kapalı Yollar Modül Logosu</i></sub>
-</div>
+Amaç cezadan kaçmak değil, sürücünün dikkatli olması gereken yerleri bilmesi ve güvenli sürmesidir.
 
 ---
 
-## 🚀 Öne Çıkan Özellikler
+## 📱 Kullanım
 
-- 📸 **Canlı Radar & Kontrol Noktaları:** Güzergah üzerindeki sabit/mobil radarları ve polis/jandarma denetim noktalarını anlık harita üzerinde görselleştirme.
-- ⚡ **Hız Koridorları & Limit Tabelaları:** Ortalama hız ihlal bölgelerini kesikli kırmızı hatlarla ve hız limiti tabelalarıyla gösterme.
-- 🚧 **KGM Canlı Yol Çalışmaları & Kapalı Yollar:** Karayolları Genel Müdürlüğü (KGM) ArcGIS servis altyapısıyla Türkiye genelindeki aktif yol bakımlarını, onarım sahalarını ve kapalı yolları canlı sorgulama.
-- 📡 **Kesintisiz Akıllı Konum Takibi:** GPS sinyali zayıfladığında Wi-Fi, hücresel veri ve IP yer tespiti altyapısıyla kilitlenmeden arka planda konum takibi.
-- 🔊 **Sesli Yaklaşım İkazı (Web Speech API):** Güzergahtaki radar, kontrol noktaları, hız koridorları veya yol çalışmalarına **2 km** mesafe kaldığında Türkçe sesli ikaz verme.
-- 🌤️ **Canlı Meteoroloji & Görüş Mesafesi:** Rota başlangıç, varış ve orta noktalarında anlık sıcaklık, rüzgar ve görüş mesafesi (km) analizi.
-- ⚠️ **Güzergah Risk Skoru:** Seçilen rotadaki denetim ve radar yoğunluğuna göre %0 ile %100 arasında otomatik risk analizi.
-- 🔍 **Tam SEO ve Sosyal Medya Entegrasyonu:** Open Graph, Twitter Cards, Schema.org (JSON-LD) ve bot dostu semantik metin yapıları.
-- 🖥️ **Tam Ekran & Çift Tema Desteği:** Koyu tema destekli arayüz, gerçek karayolu katmanı ve tek tıkla tam ekran harita deneyimi (`ESC` tuşu entegrasyonlu).
+### 1. Rota oluşturma
+1. **Nereden** ve **Nereye** illerini seçin (⇅ düğmesi yönü değiştirir, **Konumum** bulunduğunuz ili seçer).
+2. **ROTA OLUŞTUR**'a basın.
+3. Ekranda şunlar görünür:
+   - **Bilgi kutusu:** Verinin nereden geldiği (İçişleri kaydı, ters yön kaydı ya da tahmin).
+   - **Risk skoru:** Güzergahtaki denetim yoğunluğuna göre %0–%99.
+   - **Sayaçlar:** Radar, Kontrol Noktası, Hız Koridoru, Kamera.
+   - **Harita:** Rota ve tüm işaretler (yanıp sönenler rotanızın üzerindedir).
+   - **Detay:** Hava durumu, *Güzergah Uyarıları* listesi (km sırasıyla; dokununca haritada gösterir),
+     hız koridorları ve geçilen illerin denetim dağılımı.
+
+Son aranan rotalar formun altında kısayol olarak durur.
+
+### 2. Sürüş modu
+Haritadaki **▶ Sürüş Modu** düğmesine basın ve konum iznini verin. Ekran açık kalır ve:
+
+| Uyarı | Ne zaman |
+|---|---|
+| Hız kamerası | 2 km kala (rota dışına çıksanız da, gidiş yönünüzdeki kameralar için) |
+| Hız koridoru başlangıcı | 2 km kala |
+| Radar / kontrol noktası bölgesi | 2 km kala (il bazında) |
+| Hemzemin geçit, okul geçidi, tehlike noktası | 400 m kala |
+| Hız sınırı aşımı | Sınır %10'dan fazla aşılınca (en fazla 30 sn'de bir) |
+| Yol çalışması / kapalı yol | 2 km kala (sadece KGM katmanı açıksa) |
+
+Sol üstteki tabela bulunduğunuz yolun **hız sınırını** ve **anlık hızınızı** gösterir.
+Sınır bilgisi olmayan yollarda yönetmelikteki genel sınır "Genel kural" notuyla gösterilir.
+
+### 3. Harita katmanları
+Sağ üstteki katman düğmesinden:
+- **Gerçek Karayolu Haritası / Koyu Tema**
+- **KGM Yol Çalışmaları & Kapalı Yollar** (varsayılan kapalı; seçince açılır, yol çalışmasına tıklayınca ayrıntı gösterir)
+- **Tüm Hız Kameraları (Türkiye)** (varsayılan açık)
+
+⛶ düğmesi haritayı tam ekran yapar (`ESC` ile çıkılır). Sağ alttaki **Lejant ▾** işaretlerin anlamını gösterir.
+
+### 4. Haritadaki işaretler
+
+| İşaret | Anlamı |
+|---|---|
+| Mavi çizgi | Rotanız |
+| Kırmızı kesik çizgi + sarı halkalı tabela | Hız koridoru (ortalama hız denetimi); tabelada koridorun hız sınırı |
+| Kırmızı yuvarlak, içinde rakam | Radar denetimi; rakam o ildeki radarlı denetim sayısı (il bazında, yaklaşık konum) |
+| Turkuaz yuvarlak, içinde rakam | Kontrol noktası; rakam o ildeki radarsız kontrol sayısı (il bazında) |
+| Turuncu kare | Sabit hız kamerası; rakam hız sınırı (📷: bilinmiyor) |
+| Sarı kare / Mor kare | Ortalama hız kamerası / Mobil radar noktası |
+| Küçük turuncu nokta | Türkiye genelindeki kameralar |
+| Kırmızı çerçeveli tabela | Hız sınırı tabelası |
+| 🚆 / 🏫 / ⚠️ | Hemzemin geçit / Okul geçidi / Tehlike (heyelan, viraj, hayvan geçidi…) |
+| Yeşil / Kırmızı nokta | Kalkış / Varış |
+
+### 5. Telefona kurulum
+- **Android uygulaması (APK):** GitHub → *Actions* → son başarılı "Android APK" çalışması → *Artifacts* → `cepteradar-apk`.
+  İndirip telefonda açın (bilinmeyen kaynaklardan yüklemeye izin vermeniz gerekebilir).
+- **Ana ekrana ekleme (iPhone ve Android):** Siteyi tarayıcıda açıp *Ana ekrana ekle* deyin; uygulama gibi tam ekran açılır.
 
 ---
 
-## 🛠️ Kullanılan Teknolojiler
+## 🗂️ Veriler ve Doğruluk
 
-- **Frontend:** HTML5, CSS3, JavaScript (ES6+), Tailwind CSS
-- **Harita & Coğrafi Veri:** Leaflet.js, ArcGIS API for JavaScript, Esri Leaflet, OpenStreetMap Tile Servisleri
-- **Haritalama & Rota Servisi:** OSRM (Open Source Routing Machine) API
-- **Hava Durumu API:** Open-Meteo API
-- **Veri Kaynağı:** Karayolları Genel Müdürlüğü (KGM) MapServer Servisleri
-- **Bildirim & Arayüz Elemanları:** SweetAlert2, Web Speech API (Sesli Okuma)
+| Bilgi | Kaynak | Not |
+|---|---|---|
+| Radar, kontrol noktası, hız koridoru sayıları; geçilen iller | [İçişleri Bakanlığı – İller Arası Radar ve Kontrol Noktası Uygulama Sayıları](https://www.icisleri.gov.tr/iller-arasi-radar-ve-kontrol-noktasi-uygulama-sayilari) | `iller_kucuk/<il>.json`. Bakanlık verisi il bazındadır, radarların tam yerini vermez; sayılar o anki uygulamalardır ve değişir. |
+| Hız koridoru konumları | İçişleri cevabındaki koridor çizgileri | `iller_kucuk/koridorlar.json` |
+| Hız kameraları | OpenStreetMap (gönüllü verisi) | `iller_kucuk/osm_radarlar.json`; eksik veya eski olabilir |
+| Hemzemin/okul geçidi, tehlike noktaları, hız sınırları | OpenStreetMap (Overpass servisi) | Rota oluşturulunca ve sürüşte anlık alınır |
+| Yol çalışmaları | Karayolları Genel Müdürlüğü (KGM) harita servisi | Canlı |
+| Rota | Kayıttaki İçişleri rotası, yoksa OSRM | |
+| Hava durumu | Open-Meteo | Canlı |
+
+**Rota için kayıt yoksa:**
+1. Ters yönün kaydı varsa o kullanılır ("ters yön" notuyla).
+2. O da yoksa radar ve kontrol sayıları, rotanın geçtiği illerin **başka rotalardaki İçişleri verilerinden tahmin edilir**
+   (`iller_kucuk/il_ozet.json`). Risk göstergesinde "TAHMİNİ" yazar; bilgi kutusu hangi illerin kullanıldığını söyler.
+
+Program hiçbir zaman uydurma radar konumu ya da sayısı göstermez. Veri yoksa "veri yok" der.
+
+Varış listesinde **●** işaretli iller, seçilen kalkış ilinden doğrudan kaydı olan illerdir.
 
 ---
 
-## 📱 Web Sitesi + Android Uygulaması
+## 🔄 Verileri Güncelleme
 
-Uygulama artık tamamen tarayıcı tarafında çalışır (ayrı bir API sunucusu gerekmez):
-rota OSRM'den, hava durumu Open-Meteo'dan, radar/kontrol/koridor sayıları `iller_kucuk/*.json` dosyalarından okunur.
+Kurulum (bir kez): [Node.js](https://nodejs.org) ve Google Chrome kurulu olmalı; proje klasöründe `npm install`.
 
-- **Web:** Klasörü herhangi bir statik barındırmaya (GitHub Pages, Netlify, kendi sunucunuz) yükleyin ya da `npm start` ile `http://localhost:8000` adresinde açın.
-- **Telefona kurulum (PWA):** Siteyi Chrome'da açıp "Ana ekrana ekle" deyin; uygulama gibi tam ekran açılır.
-- **APK:** Her push'ta GitHub Actions (`.github/workflows/android-apk.yml`) APK üretir. Actions → son çalıştırma → *Artifacts* → `cepteradar-apk`.
-  Yerelde derlemek için Android SDK + JDK 21 kurulu olmalı: `npm ci && npm run android:apk`.
+### İçişleri verisi (81 il)
+```bash
+npm run veri:cek                                    # eksik tüm rotalar (önce büyük şehirler)
+node scripts/icisleri-cek.mjs --kalkis izmir        # sadece bir kalkış ili
+node scripts/icisleri-cek.mjs --engel-bekle 15      # engelde 15 dk'da bir yeniden dene
+```
+Program İçişleri sayfasını gerçek bir tarayıcıda açıp her il çifti için "ROTA OLUŞTUR"a basar ve cevabı kaydeder.
+Site yaklaşık 12 sorguda bir kısa süreli engel koyar; program bunu tanır, bekler ve kendiliğinden devam eder.
+Her il çiftinin tek yönü indirilir (uygulama ters yönü kullanır; iki yön için `--iki-yon`).
+Ctrl+C ile durdurup tekrar başlatınca kaldığı yerden devam eder. Bilgisayarı uyku moduna almayın.
 
-## 🗂️ 81 İl Verisi (İçişleri Bakanlığı)
+### Hız kameraları (OpenStreetMap)
+```bash
+npm run veri:osm                                    # birkaç saniyede tüm Türkiye
+node scripts/osm-cek.mjs export.geojson             # overpass-turbo.eu'dan indirilmiş dosyayı işler
+```
 
-Kaynak: [İller Arası Radar ve Kontrol Noktası Uygulama Sayıları](https://www.icisleri.gov.tr/iller-arasi-radar-ve-kontrol-noktasi-uygulama-sayilari)
+### Elinizdeki il dosyalarını ekleme
+```bash
+node scripts/veri-birlestir.mjs "C:\klasor\iller"   # birleştirir, mevcut kayıtları silmez
+```
+İçişleri sitesinin ham cevabı veya uygulama kaydı (`kalkis_il`, `varis_il`, `radar_sayisi`…) kabul edilir.
+Birleştirme sonunda `index.json`, `koridorlar.json` ve `il_ozet.json` yeniden üretilir.
 
-Arayüzde 81 ilin tamamı seçilebilir. Bir rota için veri yoksa harita ve hava durumu yine gösterilir, radar sayıları için "veri yok" uyarısı çıkar.
-Varış listesinde **●** işaretli iller, seçilen kalkış ilinden verisi olan illerdir. Bir yönün verisi yoksa ters yönün verisi kullanılır.
+**Büyük dosyalar** (GitHub web yüklemesi 25 MB sınırlıdır) için Python araçları:
+```bash
+python scripts/iller_incele.py "C:\klasor\iller\adana.json"     # içeriği ve neyin yer kapladığını gösterir
+python scripts/iller_kucult.py "C:\klasor\iller" "C:\klasor\iller_kucuk_yeni"   # sayıları koruyup küçültür
+```
 
-**Tüm illeri otomatik indirmek için** (kendi bilgisayarınızda, Google Chrome kurulu olmalı):
+Değişiklikleri GitHub'a gönderdiğinizde site ve APK yeni verilerle güncellenir.
+
+---
+
+## 💻 Geliştirici Bilgileri
+
+Uygulama tamamen tarayıcıda çalışır; ayrı bir API sunucusu gerekmez.
 
 ```bash
 npm install
-npm run veri:cek                                   # 81 ilin eksik tüm rotaları
-node scripts/icisleri-cek.mjs --kalkis izmir       # sadece bir kalkış ili
-node scripts/icisleri-cek.mjs --bekle 10 --engel-bekle 30   # daha yavaş, engelde 30 dk'da bir dene
+npm start                 # http://localhost:8000
+npm run android:apk       # yerelde APK (Android SDK + JDK 21 gerekir)
 ```
 
-Program İçişleri sayfasını açar, her il çifti için "ROTA OLUŞTUR"a basar ve sitenin cevabını
-`iller_kucuk/` klasörüne kaydeder. Site kısa sürede çok sorguya izin vermediği için yavaş ilerler;
-engel görünce bekleyip kendiliğinden devam eder (bilgisayarı açık bırakmanız yeterli). Büyük şehirler
-arasındaki rotalar önce indirilir. Ctrl+C ile durdurup tekrar çalıştırırsanız kaldığı yerden devam eder.
-Bittiğinde `git add iller_kucuk && git commit -m "Rota verileri" && git push` ile gönderin.
+- **Teknolojiler:** HTML, CSS, JavaScript; Leaflet + Esri Leaflet (yerel kopya), Web Speech API (sesli uyarı),
+  Geolocation + Wake Lock (sürüş modu), Service Worker (PWA), Capacitor (Android).
+- **Otomatik derleme:** Her gönderimde GitHub Actions APK üretir (`.github/workflows/android-apk.yml`);
+  `main` dalı GitHub Pages'e yayınlanır (`.github/workflows/pages.yml`, depo ayarlarından Pages açılmalı).
 
-Elle indirilen rota dosyalarını eklemek için:
-
-```bash
-node scripts/veri-birlestir.mjs indirilenler/     # klasördeki tüm .json'ları birleştirir
-```
-
-Her dosya tek bir rota nesnesi (`{kalkis_il, varis_il, radar_sayisi, ...}`) veya bunların dizisi olabilir.
-Kayıtlar kalkış iline göre `iller_kucuk/<il>.json` dosyalarına eklenir, mevcut kayıtlar korunur ve `iller_kucuk/index.json` yeniden üretilir.
-
-## 📷 Gerçek Konumlu Hız Kameraları (OpenStreetMap)
-
-İçişleri verisi radarların yerini vermez. Sabit, ortalama hız ve mobil kamera konumları
-OpenStreetMap'ten alınır ve `iller_kucuk/osm_radarlar.json` dosyasına yazılır:
-
-```bash
-npm run veri:osm                                  # Overpass servisinden indirir (birkaç saniye)
-node scripts/osm-cek.mjs export.geojson           # overpass-turbo.eu'dan dışa aktarılmış dosyayı işler
-```
-
-Rota üzerindeki kameralar haritada yanıp söner ve 2 km kala sesli uyarı verilir. Sürüş modunda
-rota dışında da, gidiş yönünde önde kalan kameralar için uyarılır. Katman menüsündeki
-"Tüm Hız Kameraları" ile Türkiye'deki tüm kameralar görülebilir.
-Veri: © OpenStreetMap katkıda bulunanlar (ODbL); gönüllü verisidir, eksik veya eski olabilir.
-
-## 🚦 Anlık Hız Sınırı, Hemzemin ve Okul Geçitleri
-
-Sürüş modunda konumun çevresindeki (~1,5 km) yollar OpenStreetMap'in Overpass servisinden
-anlık sorgulanır (`js/yol.js`). Bulunulan yolun hız sınırı haritanın sol üstünde tabela olarak
-gösterilir. Sınır %10'dan fazla aşılırsa tabela yanıp söner ve sesli uyarı verilir. Hemzemin geçit
-ve okul geçitlerine 400 m kala uyarılır, hız tabelaları haritada gösterilir.
-Yolda `maxspeed` bilgisi yoksa yönetmelikteki genel sınır "Genel kural" notuyla gösterilir;
-aşım uyarısı sadece kesin bilinen sınırlarda (ve otoyolda) verilir.
-
-## 📁 Proje Dosya Yapısı
-
-```struct
+```text
 cepteradar/
-├── assets/
-│   ├── logo.svg            # Cepte Radar Ana Logosu
-│   └── logo-work.svg       # KGM Yol Bakım & Onarım Logosu
-├── iller_kucuk/            # İl bazında rota JSON verileri + index.json (veri dizini)
-├── css/app.css             # Mobil öncelikli arayüz stilleri
-├── js/                     # app.js (arayüz), veri.js (veri katmanı), iller.js (81 il), koruma.js
-├── vendor/                 # Leaflet & Esri Leaflet (çevrimdışı/APK için yerel kopya)
-├── scripts/                # veri-birlestir, ikon-uret, www-hazirla, android-hazirla
-├── capacitor.config.json   # Android (APK) paket ayarları
-├── index.html              # Cepte Radar Ana Sorgulama & Rota Sayfası
-├── main.html               # KGM Canlı Yol Bakım Onarım & Kapalı Yollar Haritası
-├── manifest.json           # PWA (Progressive Web App) Desteği
-├── sw.js                   # Service Worker Servisi
-├── server.js               # Yerel statik sunucu (npm start)
-└── README.md               # Proje Dokümantasyonu
+├── index.html              # Ana uygulama (rota, harita, detay)
+├── main.html               # KGM yol çalışmaları & kapalı yollar haritası
+├── css/app.css             # Mobil öncelikli arayüz
+├── js/
+│   ├── app.js              # Arayüz, harita, rota, uyarılar, sürüş modu
+│   ├── veri.js             # Veri katmanı (il dosyaları, OSRM, hava durumu, güzergah analizi, OSM)
+│   ├── yol.js              # Sürüşte anlık hız sınırı, hız aşımı, hemzemin/okul geçidi
+│   ├── iller.js            # 81 il (plaka, ad, koordinat)
+│   └── koruma.js
+├── iller_kucuk/            # <il>.json rota kayıtları + index, koridorlar, il_ozet, osm_radarlar
+├── scripts/                # veri:cek, veri:osm, birleştirme, Python araçları, APK hazırlık
+├── vendor/                 # Leaflet & Esri Leaflet
+├── assets/                 # Logolar ve uygulama simgeleri
+├── manifest.json, sw.js    # PWA
+├── capacitor.config.json   # Android paket ayarları
+└── server.js               # Yerel statik sunucu (npm start)
+```
+
+---
+
+## ⚖️ Yasal Uyarı
+
+Cepte Radar bilgilendirme amaçlıdır. Gösterilen sayılar ve konumlar kamuya açık kaynaklardan derlenir;
+eksik, gecikmeli veya hatalı olabilir. Trafik kurallarına ve yol üzerindeki işaretlere uymak her zaman sürücünün
+sorumluluğundadır. Sürüş sırasında telefonu elde kullanmayın; sesli uyarılar dikkat dağıtmamak içindir.
+Ayrıntılı kullanım şartları uygulamadaki **Yasal** bölümündedir.
+
+Harita ve kamera verileri: © OpenStreetMap katkıda bulunanlar (ODbL) · Yol çalışmaları: KGM · Hava durumu: Open-Meteo.
+
+<div align="center">
+  <br>
+  <img src="assets/logo-work.svg" alt="Yol Bakım Onarım Logosu" width="120" height="120">
+</div>
