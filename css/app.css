@@ -227,6 +227,22 @@ code { background: #1e293b; padding: 0 4px; border-radius: 4px; color: #fcd34d; 
 .al-km { font-weight: 800; color: var(--muted); font-size: 12px; text-align: right; }
 .al-ico { text-align: center; }
 .lg-emoji { font-size: 12px; }
+/* Lejant: haritadaki işaretlerin küçültülmüş aynısı */
+.legend-body { max-width: 260px; }
+.legend-body > div { display: flex; align-items: center; gap: 8px; line-height: 1.25; padding: 2px 0; }
+.lg-ico { flex: 0 0 40px; height: 26px; display: inline-flex; align-items: center; justify-content: center; gap: 2px; }
+.lg-ico > .blink-marker, .lg-ico > .speed-limit-sign, .lg-ico > .poi-marker { transform: scale(.72); flex: 0 0 auto; }
+.lg-ico > .pin { transform: scale(.75); }
+.lg-ico .lg-line { width: 14px; }
+.lg-kgm.hidden { display: none !important; }
+.lg-note { font-size: 10px; color: var(--muted); padding-top: 4px !important; }
+/* Türkiye geneli kameralar: aynı işaretin küçük, yanıp sönmeyen hali */
+.blink-marker.mini { width: 14px; height: 14px; border-width: 2px; border-radius: 4px; animation: none; }
+.blink-marker.mini span { display: none; }
+.lg-ico, .lg-ico * { animation: none !important; }
+.lg-ico > .gps-car-marker { transform: scale(.7); }
+/* Hız koridoru tabelası: sarı halkayla hız sınırı tabelasından ayrılır */
+.speed-limit-sign.corridor { box-shadow: 0 0 0 3px #facc15, 0 2px 6px rgba(0, 0, 0, .4); }
 .map-btn { font-size: 18px; line-height: 30px !important; text-align: center; background: var(--card) !important; color: #fff !important; }
 .leaflet-bar a { background: var(--card); color: #fff; border-color: var(--line); }
 .leaflet-control-layers { background: var(--card); color: var(--text); border: 1px solid var(--line) !important; border-radius: 12px !important; }
@@ -237,7 +253,7 @@ code { background: #1e293b; padding: 0 4px; border-radius: 4px; color: #fcd34d; 
 .map-legend { background: rgba(18, 26, 43, .95); border: 1px solid var(--line); border-radius: 12px; color: var(--text); font-size: 11px; padding: 6px 10px; margin-bottom: 70px !important; }
 .legend-toggle { background: none; border: 0; padding: 2px 0; font-weight: 700; cursor: pointer; }
 .map-legend.collapsed .legend-body { display: none; }
-.legend-body div { display: flex; align-items: center; gap: 8px; line-height: 22px; }
+.legend-body { max-height: calc(58vh - 110px); overflow-y: auto; }
 .lg-line { display: inline-block; width: 18px; height: 4px; border-radius: 2px; }
 .lg-dash { background: repeating-linear-gradient(90deg, var(--red) 0 5px, transparent 5px 9px); }
 .lg-sq { display: inline-block; width: 11px; height: 11px; border-radius: 3px; box-shadow: 0 0 8px var(--amber); }

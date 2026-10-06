@@ -69,6 +69,20 @@
     text: `📷 ${WARN_DISTANCE_KM} km sonra ${cameraType(c).label.toLowerCase()}${c.hiz ? ` (${c.hiz} km/s)` : ''}`,
   });
 
+  // ---------------------------------------------------------------- İŞARETLER
+  // Haritadaki her işaret buradan üretilir; lejant da aynı fonksiyonları kullanır (birebir aynı görünüm).
+  const SYM = {
+    radar: (n) => `<div class="blink-marker radar"><span>${n}</span></div>`,
+    kontrol: (n) => `<div class="blink-marker kontrol"><span>${n}</span></div>`,
+    kamera: (tur, hiz, extra = '') => `<div class="blink-marker kamera ${esc(tur || 'sabit')} ${extra}"><span>${hiz || '📷'}</span></div>`,
+    koridor: (n) => `<div class="speed-limit-sign corridor blink">${n}</div>`,
+    tabela: (n) => `<i class="speed-limit-sign">${n}</i>`,
+    poi: (kind, icon, extra = '') => `<div class="poi-marker ${kind} ${extra}">${icon}</div>`,
+    pin: (cls) => `<div class="pin ${cls}"></div>`,
+    gps: () => '<div class="gps-car-marker"></div>',
+  };
+  const symIcon = (html, size = 30) => L.divIcon({ className: '', html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
+
   // ---------------------------------------------------------------- HARİTA
   const streetTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' });
   const darkTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: '© Esri' });
@@ -100,7 +114,7 @@
   allCamerasLayer.on('add', async () => {
     if (allCamerasLayer.getLayers().length) return;
     (await Veri.loadCameras()).forEach((c) => {
-      L.circleMarker([c.lat, c.lon], { radius: 5, color: '#fff', weight: 1.5, fillColor: CAMERA_TYPES[c.tur]?.color || '#f97316', fillOpacity: 1 })
+      L.marker([c.lat, c.lon], { icon: symIcon(SYM.kamera(c.tur, c.hiz, 'mini'), 14) })
         .bindPopup(cameraPopup(c)).addTo(allCamerasLayer);
     });
   });
@@ -147,15 +161,24 @@
     div.innerHTML = `
       <button type="button" class="legend-toggle">Lejant ▾</button>
       <div class="legend-body">
-        <div><i class="lg-line bg-blue"></i> Karayolu Rotası</div>
-        <div><i class="lg-line lg-dash"></i> Hız Koridoru</div>
-        <div><i class="lg-dot lg-blink bg-red"></i> Radarlı Denetim (il bazında)</div>
-        <div><i class="lg-dot lg-blink" style="background:#0891b2"></i> Kontrol Noktası (il bazında)</div>
-        <div><i class="lg-dot lg-blink" style="background:#f97316"></i> Hız Kamerası (gerçek konum)</div>
-        <div><i class="lg-sq bg-amber"></i> Yol Çalışması / Kapanma</div>
-        <div><span class="lg-emoji">🚆</span> Hemzemin Geçit / <span class="lg-emoji">🏫</span> Okul Geçidi</div>
-        <div><i class="speed-limit-sign sm">82</i> Hız Limiti Tabelası</div>
-        <div><i class="lg-dot lg-start"></i> Kalkış / <i class="lg-dot lg-end"></i> Varış</div>
+        ${[
+          ['<i class="lg-line bg-blue"></i>', 'Rotanız'],
+          [`<i class="lg-line lg-dash"></i>${SYM.koridor(110)}`, 'Hız koridoru — tabelada koridorun hız sınırı (ortalama hız denetimi)'],
+          [SYM.radar(3), 'Radar denetimi — rakam: o ildeki radarlı denetim sayısı (il bazında)'],
+          [SYM.kontrol(5), 'Kontrol noktası — rakam: o ildeki radarsız kontrol sayısı (il bazında)'],
+          [SYM.kamera('sabit', 90), 'Sabit hız kamerası — rakam: hız sınırı (📷: bilinmiyor)'],
+          [SYM.kamera('ortalama', 82), 'Ortalama hız kamerası'],
+          [SYM.kamera('mobil', ''), 'Mobil radar noktası'],
+          [SYM.kamera('sabit', '', 'mini'), 'Küçük işaret: Türkiye geneli kameralar'],
+          [SYM.tabela(90), 'Hız sınırı tabelası'],
+          [SYM.poi('tren', '🚆'), 'Hemzemin geçit'],
+          [SYM.poi('okul', '🏫'), 'Okul geçidi'],
+          [SYM.poi('tehlike', '⚠️'), 'Tehlike (heyelan, viraj, hayvan geçidi…)'],
+          [`${SYM.pin('pin-start')}${SYM.pin('pin-end')}`, 'Kalkış / Varış'],
+          [SYM.gps(), 'Konumunuz (sürüş modu)'],
+        ].map(([sym, text]) => `<div><span class="lg-ico">${sym}</span><span>${text}</span></div>`).join('')}
+        <div class="lg-kgm"><span class="lg-ico"><i class="lg-sq bg-amber"></i></span><span>Yol çalışması / kapalı yol (KGM katmanı)</span></div>
+        <div class="lg-note">Yanıp sönen işaretler rotanızın üzerindedir.</div>
       </div>`;
     L.DomEvent.disableClickPropagation(div);
     div.querySelector('.legend-toggle').addEventListener('click', () => div.classList.toggle('collapsed'));
@@ -163,6 +186,10 @@
     return div;
   };
   legend.addTo(map);
+  // KGM satırı sadece KGM katmanı açıkken görünür (haritada o zaman çizilir)
+  const syncKgmLegend = () => document.querySelectorAll('.lg-kgm').forEach((el) => el.classList.toggle('hidden', !map.hasLayer(kgmLayer)));
+  map.on('overlayadd overlayremove', syncKgmLegend);
+  syncKgmLegend();
 
   window.addEventListener('resize', () => setTimeout(() => map.invalidateSize(), 200));
 
@@ -333,7 +360,7 @@
     return { icon: '⚠️', label: tr.charAt(0).toLocaleUpperCase('tr') + tr.slice(1), say: tr };
   }
 
-  const pinIcon = (cls) => L.divIcon({ className: '', html: `<div class="pin ${cls}"></div>`, iconSize: [18, 18], iconAnchor: [9, 9] });
+  const pinIcon = (cls) => symIcon(SYM.pin(cls), 18);
 
   // Güzergah boyunca OpenStreetMap tehlike noktalarını (hemzemin/okul geçidi, tehlike tabelaları,
   // güncel kameralar, hız tabelaları) yükler; rota çizildikten sonra arka planda çalışır.
@@ -351,7 +378,7 @@
         if (h.kind === 'kamera') {
           if (camIds.has(h.id) || cameras.some((c) => Veri.fastKm([c.lat, c.lon], pos) < 0.03)) return;
           const c = { id: h.id, tur: 'sabit', lat: h.lat, lon: h.lon, hiz: Yol.parseLimit(h.maxspeed), ad: h.name || null };
-          addLayer(L.marker(pos, { icon: L.divIcon({ className: '', html: `<div class="blink-marker kamera sabit"><span>${c.hiz || '📷'}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 600 }))
+          addLayer(L.marker(pos, { icon: symIcon(SYM.kamera('sabit', c.hiz)), zIndexOffset: 600 }))
             .bindPopup(cameraPopup(c));
           warnPoints.push(cameraWarning(c));
           alerts.push({ idx, coords: pos, icon: '📷', text: `${cameraType(c).label}${c.hiz ? ` (${c.hiz} km/s)` : ''}` });
@@ -361,12 +388,12 @@
         }
         if (h.kind === 'tabela') {
           const lim = Yol.parseLimit(h.maxspeed);
-          if (lim) addLayer(L.marker(pos, { icon: L.divIcon({ className: '', html: `<i class="speed-limit-sign">${lim}</i>`, iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 300 }))
+          if (lim) addLayer(L.marker(pos, { icon: symIcon(SYM.tabela(lim)), zIndexOffset: 300 }))
             .bindPopup(`<b>Hız sınırı tabelası: ${lim} km/s</b><br><small>Kaynak: OpenStreetMap</small>`);
           return;
         }
         const info = hazardInfo(h);
-        addLayer(L.marker(pos, { icon: L.divIcon({ className: '', html: `<div class="poi-marker ${h.kind} blink">${info.icon}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] }), zIndexOffset: 450 }))
+        addLayer(L.marker(pos, { icon: symIcon(SYM.poi(h.kind, info.icon, 'blink'), 26), zIndexOffset: 450 }))
           .bindPopup(`<b>${info.icon} ${esc(info.label)}</b><br><small>Kaynak: OpenStreetMap</small>`);
         warnPoints.push({
           key: `osm:${h.id}`, type: h.kind, dist: 0.4, coords: pos,
@@ -465,8 +492,8 @@
       const radar = rec ? toInt(rec.radar_sayisi) : estimate ? sum('Radarli') : 0;
       const kontrol = rec ? toInt(rec.kontrol_sayisi) : estimate ? sum('Radarsiz') : 0;
       const koridor = rec ? toInt(rec.koridor_sayisi) : mapCorridors.length;
-      $('stat-radar').textContent = rec ? radar : estimate ? `≈${radar}` : '—';
-      $('stat-kontrol').textContent = rec ? kontrol : estimate ? `≈${kontrol}` : '—';
+      $('stat-radar').textContent = rec || estimate ? radar : '—';
+      $('stat-kontrol').textContent = rec || estimate ? kontrol : '—';
       $('stat-koridor').textContent = koridor;
       $('stat-kamera').textContent = cameras.length;
       setRisk(Math.min(99, Math.round(((radar + kontrol + koridor + cameras.length) / 45) * 100)), !!(rec || estimate), !!estimate);
@@ -508,7 +535,7 @@
         const popup = `<b>⚡ ${esc(c.name || 'Hız Koridoru')}</b><br>Limit: ${limit} km/s${c.length ? `<br>Uzunluk: ${esc(c.length)} km` : ''}`;
         addLayer(L.polyline(cc, { color: '#ef4444', weight: 8, opacity: 0.95, dashArray: '10 8', className: 'blink-line' })).bindPopup(popup);
         const mid = cc[Math.floor(cc.length / 2)];
-        addLayer(L.marker(mid, { icon: L.divIcon({ className: '', html: `<div class="speed-limit-sign blink">${limit}</div>`, iconSize: [30, 30], iconAnchor: [15, 15] }) }).bindPopup(popup));
+        addLayer(L.marker(mid, { icon: symIcon(SYM.koridor(limit)) }).bindPopup(popup));
         alerts.push({ idx: c.routeIndex ?? 0, coords: cc[0], icon: '⚡', text: `Hız koridoru başlıyor: ${c.name || 'Hız koridoru'} (${limit} km/s${c.length ? `, ${c.length} km` : ''})` });
         warnPoints.push({
           key: `k${i}`, type: 'koridor', coords: cc[0],
@@ -520,7 +547,7 @@
       // Gerçek konumlu hız kameraları (OpenStreetMap)
       cameras.forEach((c) => {
         addLayer(L.marker([c.lat, c.lon], {
-          icon: L.divIcon({ className: '', html: `<div class="blink-marker kamera ${esc(c.tur)}"><span>${c.hiz || '📷'}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 15] }),
+          icon: symIcon(SYM.kamera(c.tur, c.hiz)),
           zIndexOffset: 600,
         })).bindPopup(cameraPopup(c));
         warnPoints.push(cameraWarning(c));
@@ -542,7 +569,7 @@
           const note = '<br><small>Konum il bazında yaklaşıktır; kesin denetim noktası değildir.</small>';
           if (r > 0) {
             const pos = at(0.4);
-            addLayer(L.marker(pos, { icon: L.divIcon({ className: '', html: `<div class="blink-marker radar"><span>${r}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 500 }))
+            addLayer(L.marker(pos, { icon: symIcon(SYM.radar(r)), zIndexOffset: 500 }))
               .bindPopup(`<b>📷 ${esc(il.ad)} — ${r} radarlı denetim</b>${note}`);
             alerts.push({ idx: atIdx(0.4), icon: '🔴', text: `Radar denetim bölgesi — ${il.ad}: ${r} radarlı denetim (il bazında${estNote})` });
             warnPoints.push({
@@ -553,7 +580,7 @@
           }
           if (rs > 0) {
             const pos = at(0.6);
-            addLayer(L.marker(pos, { icon: L.divIcon({ className: '', html: `<div class="blink-marker kontrol"><span>${rs}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 500 }))
+            addLayer(L.marker(pos, { icon: symIcon(SYM.kontrol(rs)), zIndexOffset: 500 }))
               .bindPopup(`<b>👮 ${esc(il.ad)} — ${rs} radarsız kontrol noktası</b>${note}`);
             alerts.push({ idx: atIdx(0.6), icon: '🔵', text: `Kontrol noktası bölgesi — ${il.ad}: ${rs} kontrol noktası (il bazında${estNote})` });
             warnPoints.push({
@@ -622,7 +649,7 @@
     const ll = [lat, lon];
     $('gps-status-text').textContent = label;
     if (!gpsMarker) {
-      gpsMarker = L.marker(ll, { icon: L.divIcon({ className: '', html: '<div class="gps-car-marker"></div>', iconSize: [22, 22], iconAnchor: [11, 11] }), zIndexOffset: 1000 }).addTo(map);
+      gpsMarker = L.marker(ll, { icon: symIcon(SYM.gps(), 22), zIndexOffset: 1000 }).addTo(map);
     } else gpsMarker.setLatLng(ll);
     // Sürüş başladığında ilk konumda sokak seviyesine yaklaş (tabela ve geçitler görünsün).
     if (zoomOnFix) { zoomOnFix = false; if (map.getZoom() < 14) map.setView(ll, 15); else map.panTo(ll); } else map.panTo(ll);
@@ -677,7 +704,6 @@
     btn.classList.add('active');
     btn.textContent = '■ Sürüşü Bitir';
     $('gps-status-text').textContent = 'Konum aranıyor…';
-    if (!map.hasLayer(kgmLayer)) kgmLayer.addTo(map);
     try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) { /* desteklenmiyor */ }
 
     let gotGps = false;
