@@ -282,14 +282,14 @@
     el.classList.remove('hidden', 'notice-red', 'notice-amber', 'notice-green');
     if (!found) {
       el.classList.add('notice-amber');
-      el.innerHTML = `ℹ️ <b>${esc(from.ad)} → ${esc(to.ad)}</b> rotası için İçişleri Bakanlığı radar/kontrol verisi henüz yüklenmemiş. Harita ve hava durumu gösteriliyor; radar sayıları için veri eklenmesi gerekiyor.`;
+      el.innerHTML = `ℹ️ <b>${esc(from.ad)} → ${esc(to.ad)}</b> rotası için radar/kontrol verisi henüz yüklenmemiş. Harita ve hava durumu gösteriliyor; radar sayıları için veri eklenmesi gerekiyor.`;
     } else if (found.reversed) {
       el.classList.add('notice-amber');
-      el.innerHTML = `↔️ Bu yön için kayıt yok; aynı güzergahın <b>${esc(to.ad)} → ${esc(from.ad)}</b> yönündeki İçişleri verisi gösteriliyor.`;
+      el.innerHTML = `↔️ Bu yön için kayıt yok; aynı güzergahın <b>${esc(to.ad)} → ${esc(from.ad)}</b> yönündeki denetim verisi gösteriliyor.`;
     } else {
       el.classList.add('notice-green');
       const r = found.record;
-      el.innerHTML = `✅ İçişleri Bakanlığı verisi: <b>${esc(r.kalkis_il)}${r.kalkis_ilce ? ' / ' + esc(r.kalkis_ilce) : ''}</b> → <b>${esc(r.varis_il)}${r.varis_ilce ? ' / ' + esc(r.varis_ilce) : ''}</b>`;
+      el.innerHTML = `✅ Denetim verisi: <b>${esc(r.kalkis_il)}${r.kalkis_ilce ? ' / ' + esc(r.kalkis_ilce) : ''}</b> → <b>${esc(r.varis_il)}${r.varis_ilce ? ' / ' + esc(r.varis_ilce) : ''}</b>`;
     }
   }
 
@@ -405,7 +405,7 @@
       renderAlerts();
       status.textContent = added ? `${added} ek nokta OpenStreetMap'ten eklendi.` : '';
     }).catch(() => {
-      if (seq === requestSeq) status.textContent = 'Ek tehlike noktaları şu an alınamadı; kameralar ve İçişleri verisi gösteriliyor.';
+      if (seq === requestSeq) status.textContent = 'Ek tehlike noktaları şu an alınamadı; kameralar ve denetim verisi gösteriliyor.';
     });
   }
 
@@ -473,7 +473,7 @@
       });
 
       // Rotanın geçtiği iller (rota sırasıyla). Bu rota için kayıt yoksa radar/kontrol sayıları,
-      // bu illerin başka rotalardaki İçişleri verilerinden (il_ozet.json) tahmin edilir.
+      // bu illerin başka rotalardaki denetim verilerinden (il_ozet.json) tahmin edilir.
       const segs = Veri.provinceSegments(dense, ILLER);
       let estimate = null;
       if (!rec) {
@@ -498,7 +498,7 @@
       setRisk(Math.min(99, Math.round(((radar + kontrol + koridor + cameras.length) / 45) * 100)), !!(rec || estimate), !!estimate);
       if (estimate) {
         const el = $('data-status');
-        el.innerHTML = `ℹ️ <b>${esc(from.ad)} → ${esc(to.ad)}</b> rotası için doğrudan İçişleri kaydı yok. Radar ve kontrol sayıları, geçilen illerin (${estimate.rows.map((r) => esc(r.City)).join(', ')}) diğer rotalardaki İçişleri verilerinden <b>tahmin edildi</b>.` +
+        el.innerHTML = `ℹ️ <b>${esc(from.ad)} → ${esc(to.ad)}</b> rotası için doğrudan kayıt yok. Radar ve kontrol sayıları, geçilen illerin (${estimate.rows.map((r) => esc(r.City)).join(', ')}) diğer rotalardaki denetim verilerinden <b>tahmin edildi</b>.` +
           (estimate.eksik.length ? ` Verisi olmayan iller: ${estimate.eksik.map(esc).join(', ')}.` : '');
       }
       const estNote = estimate ? ', tahmini' : '';
@@ -553,7 +553,7 @@
         alerts.push({ idx: c.routeIndex, coords: [c.lat, c.lon], icon: '📷', text: `${cameraType(c).label}${c.hiz ? ` (${c.hiz} km/s)` : ''}` });
       });
 
-      // İçişleri verisi il bazındadır (kesin nokta yok): radar ve kontrol işaretleri,
+      // Denetim verisi il bazındadır (kesin nokta yok): radar ve kontrol işaretleri,
       // rotanın o ilden geçen bölümünün ortasına yerleştirilir.
       if (breakdown.length) {
         breakdown.forEach((it, i) => {

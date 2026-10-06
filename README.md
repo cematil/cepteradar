@@ -16,7 +16,7 @@
 Türkiye'de iki il arasında yola çıkacak sürücünün, güzergahında neyle karşılaşacağını **yola çıkmadan
 önce görmesini** ve **yolda zamanında uyarılmasını** sağlamak:
 
-- Güzergahta kaç **radar denetimi**, **trafik kontrol noktası** ve **hız koridoru** olduğu (İçişleri Bakanlığı verisi),
+- Güzergahta kaç **radar denetimi**, **trafik kontrol noktası** ve **hız koridoru** olduğu (kamuya açık denetim verileri),
 - **Hız kameralarının** gerçek konumları (OpenStreetMap),
 - **Hemzemin geçit, okul geçidi, tehlikeli viraj, heyelan** gibi riskli noktalar,
 - Bulunulan yolun **hız sınırı** ve aşıldığında uyarı,
@@ -33,7 +33,7 @@ Amaç cezadan kaçmak değil, sürücünün dikkatli olması gereken yerleri bil
 1. **Nereden** ve **Nereye** illerini seçin (⇅ düğmesi yönü değiştirir, **Konumum** bulunduğunuz ili seçer).
 2. **ROTA OLUŞTUR**'a basın.
 3. Ekranda şunlar görünür:
-   - **Bilgi kutusu:** Verinin nereden geldiği (İçişleri kaydı, ters yön kaydı ya da tahmin).
+   - **Bilgi kutusu:** Verinin nereden geldiği (rota kaydı, ters yön kaydı ya da tahmin).
    - **Risk skoru:** Güzergahtaki denetim yoğunluğuna göre %0–%99.
    - **Sayaçlar:** Radar, Kontrol Noktası, Hız Koridoru, Kamera.
    - **Harita:** Rota ve tüm işaretler (yanıp sönenler rotanızın üzerindedir).
@@ -91,17 +91,17 @@ Sağ üstteki katman düğmesinden:
 
 | Bilgi | Kaynak | Not |
 |---|---|---|
-| Radar, kontrol noktası, hız koridoru sayıları; geçilen iller | [İçişleri Bakanlığı – İller Arası Radar ve Kontrol Noktası Uygulama Sayıları](https://www.icisleri.gov.tr/iller-arasi-radar-ve-kontrol-noktasi-uygulama-sayilari) | `iller_kucuk/<il>.json`. Bakanlık verisi il bazındadır, radarların tam yerini vermez; sayılar o anki uygulamalardır ve değişir. |
-| Hız koridoru konumları | İçişleri cevabındaki koridor çizgileri | `iller_kucuk/koridorlar.json` |
+| Radar, kontrol noktası, hız koridoru sayıları; geçilen iller | Kamuya açık denetim verilerinden derlenmiş il çifti kayıtları | `iller_kucuk/<il>.json`. Veri il bazındadır, radarların tam yerini vermez; sayılar o anki uygulamalardır ve değişir. |
+| Hız koridoru konumları | Rota kayıtlarındaki koridor çizgileri | `iller_kucuk/koridorlar.json` |
 | Hız kameraları | OpenStreetMap (gönüllü verisi) | `iller_kucuk/osm_radarlar.json`; eksik veya eski olabilir |
 | Hemzemin/okul geçidi, tehlike noktaları, hız sınırları | OpenStreetMap (Overpass servisi) | Rota oluşturulunca ve sürüşte anlık alınır |
 | Yol çalışmaları | Karayolları Genel Müdürlüğü (KGM) harita servisi | Canlı |
-| Rota | Kayıttaki İçişleri rotası, yoksa OSRM | |
+| Rota | Kayıttaki rota çizgisi, yoksa OSRM | |
 | Hava durumu | Open-Meteo | Canlı |
 
 **Rota için kayıt yoksa:**
 1. Ters yönün kaydı varsa o kullanılır ("ters yön" notuyla).
-2. O da yoksa radar ve kontrol sayıları, rotanın geçtiği illerin **başka rotalardaki İçişleri verilerinden tahmin edilir**
+2. O da yoksa radar ve kontrol sayıları, rotanın geçtiği illerin **başka rotalardaki denetim verilerinden tahmin edilir**
    (`iller_kucuk/il_ozet.json`). Risk göstergesinde "TAHMİNİ" yazar; bilgi kutusu hangi illerin kullanıldığını söyler.
 
 Program hiçbir zaman uydurma radar konumu ya da sayısı göstermez. Veri yoksa "veri yok" der.
@@ -114,13 +114,13 @@ Varış listesinde **●** işaretli iller, seçilen kalkış ilinden doğrudan 
 
 Kurulum (bir kez): [Node.js](https://nodejs.org) ve Google Chrome kurulu olmalı; proje klasöründe `npm install`.
 
-### İçişleri verisi (81 il)
+### Denetim verisi (81 il)
 ```bash
 npm run veri:cek                                    # eksik tüm rotalar (önce büyük şehirler)
-node scripts/icisleri-cek.mjs --kalkis izmir        # sadece bir kalkış ili
-node scripts/icisleri-cek.mjs --engel-bekle 15      # engelde 15 dk'da bir yeniden dene
+npm run veri:cek -- --kalkis izmir                  # sadece bir kalkış ili
+npm run veri:cek -- --engel-bekle 15                # engelde 15 dk'da bir yeniden dene
 ```
-Program İçişleri sayfasını gerçek bir tarayıcıda açıp her il çifti için "ROTA OLUŞTUR"a basar ve cevabı kaydeder.
+Program kaynak sayfayı gerçek bir tarayıcıda açıp her il çifti için "ROTA OLUŞTUR"a basar ve cevabı kaydeder.
 Site yaklaşık 12 sorguda bir kısa süreli engel koyar; program bunu tanır, bekler ve kendiliğinden devam eder.
 Her il çiftinin tek yönü indirilir (uygulama ters yönü kullanır; iki yön için `--iki-yon`).
 Ctrl+C ile durdurup tekrar başlatınca kaldığı yerden devam eder. Bilgisayarı uyku moduna almayın.
@@ -135,7 +135,7 @@ node scripts/osm-cek.mjs export.geojson             # overpass-turbo.eu'dan indi
 ```bash
 node scripts/veri-birlestir.mjs "C:\klasor\iller"   # birleştirir, mevcut kayıtları silmez
 ```
-İçişleri sitesinin ham cevabı veya uygulama kaydı (`kalkis_il`, `varis_il`, `radar_sayisi`…) kabul edilir.
+Kaynak sitenin ham cevabı veya uygulama kaydı (`kalkis_il`, `varis_il`, `radar_sayisi`…) kabul edilir.
 Birleştirme sonunda `index.json`, `koridorlar.json` ve `il_ozet.json` yeniden üretilir.
 
 **Büyük dosyalar** (GitHub web yüklemesi 25 MB sınırlıdır) için Python araçları:
