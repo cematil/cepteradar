@@ -187,12 +187,13 @@ out qt;`;
   function checkPoints(p) {
     if (heading == null) return;
     const ahead = points
-      .filter((x) => x.kind !== 'tabela' && !warnedPoints.has(x.id))
+      .filter((x) => x.kind !== 'tabela' && !warnedPoints.has(x.id) && !(opts.warned && opts.warned.has(`osm:node/${x.id}`)))
       .map((x) => ({ x, d: km(p, [x.lat, x.lon]) }))
       .filter(({ x, d }) => d <= POINT_WARN_KM && angleDiff(bearing(p, [x.lat, x.lon]), heading) <= 35)
       .sort((a, b) => a.d - b.d)[0];
     if (!ahead) return;
     warnedPoints.add(ahead.x.id);
+    if (opts.warned) opts.warned.add(`osm:node/${ahead.x.id}`);
     const m = Math.max(50, Math.round(ahead.d * 1000 / 50) * 50);
     if (ahead.x.kind === 'tren') {
       opts.speak(`Dikkat! ${m} metre sonra hemzemin geçit. Yavaşlayın.`);

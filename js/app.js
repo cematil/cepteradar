@@ -44,9 +44,10 @@
     return (Math.atan2(y, x) / r + 360) % 360;
   }
 
-  function speak(text) {
+  // Uyarılar sıraya alınır (aynı anda birden çok uyarı birbirini kesmesin); interrupt=true öncekileri susturur.
+  function speak(text, interrupt) {
     if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
+    if (interrupt) window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'tr-TR';
     window.speechSynthesis.speak(u);
@@ -63,7 +64,7 @@
     `${c.ad ? `<br>${cameraType(c).label}` : ''}${c.hiz ? `<br>Hız sınırı: ${c.hiz} km/s` : ''}` +
     '<br><small>Kaynak: OpenStreetMap gönüllüleri; güncel olmayabilir.</small>';
   const cameraWarning = (c) => ({
-    key: `cam:${c.id}`, coords: [c.lat, c.lon],
+    key: `cam:${c.id}`, type: 'kamera', coords: [c.lat, c.lon],
     say: `Dikkat! ${WARN_DISTANCE_KM} kilometre sonra ${cameraType(c).say}.${c.hiz ? ` Hız sınırı ${c.hiz}.` : ''}`,
     text: `📷 ${WARN_DISTANCE_KM} km sonra ${cameraType(c).label.toLowerCase()}${c.hiz ? ` (${c.hiz} km/s)` : ''}`,
   });
@@ -103,6 +104,7 @@
         .bindPopup(cameraPopup(c)).addTo(allCamerasLayer);
     });
   });
+  allCamerasLayer.addTo(map); // varsayılan olarak açık
   map.attributionControl.addAttribution('Kamera konumları © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> katkıda bulunanlar');
 
   L.control.layers(
@@ -276,21 +278,109 @@
     }).join('');
   }
 
-  function renderBreakdown(list) {
+  function renderBreakdown(list, camCounts = new Map()) {
     const box = $('city-breakdown');
     if (!list.length) { box.innerHTML = '<p class="muted small">İl bazında denetim verisi yok.</p>'; return; }
     box.innerHTML = list.map((it) => {
       const r = toInt(it.Radarli ?? it.radarli);
       const rs = toInt(it.Radarsiz ?? it.radarsiz);
       const total = r + rs;
+      const cam = camCounts.get(Veri.slug(it.City || it.name)) || 0;
       return `<div class="bd-row">
-        <div class="bd-head"><b>${esc(it.City || it.name || 'Bölge')}</b><span class="muted">${r} radarlı · ${rs} radarsız</span></div>
+        <div class="bd-head"><b>${esc(it.City || it.name || 'Bölge')}</b><span class="muted">${r} radarlı · ${rs} radarsız${cam ? ` · <span class="c-orange">${cam} kamera</span>` : ''}</span></div>
         <div class="bar">${total ? `<i class="bg-red" style="width:${(r / total) * 100}%"></i><i class="bg-cyan" style="width:${(rs / total) * 100}%"></i>` : ''}</div>
       </div>`;
     }).join('');
   }
 
+  // Güzergah uyarı listesi (Detay bölümü): rota başından uzaklığa göre sıralı
+  let alerts = [];
+  let alertCum = [];
+  let alertDense = [];
+  function renderAlerts() {
+    const ol = $('route-alerts');
+    $('alerts-count').textContent = alerts.length ? `(${alerts.length})` : '';
+    if (!alerts.length) { ol.innerHTML = '<li class="muted small">Bu güzergahta kayıtlı uyarı noktası yok.</li>'; return; }
+    alerts.sort((a, b) => a.idx - b.idx);
+    ol.innerHTML = alerts.map((a, i) => `<li data-i="${i}" tabindex="0">
+      <span class="al-km">${Math.round(alertCum[a.idx] || 0)} km</span><span class="al-ico">${a.icon}</span><span class="al-text">${esc(a.text)}</span></li>`).join('');
+  }
+  $('route-alerts').addEventListener('click', (e) => {
+    const li = e.target.closest('li[data-i]');
+    const a = li && alerts[+li.dataset.i];
+    if (!a) return;
+    map.setView(a.coords || alertDense[a.idx], 15);
+    $('panel-map').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  // OpenStreetMap tehlike türleri
+  const HAZARD_TR = {
+    animal_crossing: 'hayvan geçidi', cattle: 'hayvan geçidi', deer: 'yaban hayvanı geçidi', horse_riders: 'atlı geçidi',
+    curve: 'tehlikeli viraj', curves: 'tehlikeli virajlar', dangerous_curve: 'tehlikeli viraj',
+    falling_rocks: 'kaya düşmesi tehlikesi', landslide: 'heyelan bölgesi', slippery: 'kaygan yol', ice: 'buzlanma tehlikesi',
+    fog: 'sis bölgesi', side_winds: 'yan rüzgar', school_zone: 'okul bölgesi', children: 'çocuk geçidi',
+    pedestrians: 'yaya geçidi', dangerous_junction: 'tehlikeli kavşak', junction: 'tehlikeli kavşak',
+    bump: 'kasis', speed_bump: 'kasis', queues_likely: 'trafik sıkışıklığı', roadworks: 'yol çalışması',
+    damaged_road: 'bozuk yol', steep_incline: 'dik yokuş', steep_decline: 'dik iniş', loose_gravel: 'gevşek malzeme',
+    flooding: 'su baskını tehlikesi', low_flying_aircraft: 'alçak uçuş bölgesi', accident_area: 'kaza kara noktası',
+  };
+  function hazardInfo(h) {
+    if (h.kind === 'tren') return { icon: '🚆', label: 'Hemzemin geçit', say: 'hemzemin geçit' };
+    if (h.kind === 'okul') return { icon: '🏫', label: 'Okul geçidi', say: 'okul geçidi' };
+    const first = String(h.hazard || '').split(';')[0];
+    const tr = HAZARD_TR[first] || 'tehlikeli bölge';
+    return { icon: '⚠️', label: tr.charAt(0).toLocaleUpperCase('tr') + tr.slice(1), say: tr };
+  }
+
   const pinIcon = (cls) => L.divIcon({ className: '', html: `<div class="pin ${cls}"></div>`, iconSize: [18, 18], iconAnchor: [9, 9] });
+
+  // Güzergah boyunca OpenStreetMap tehlike noktalarını (hemzemin/okul geçidi, tehlike tabelaları,
+  // güncel kameralar, hız tabelaları) yükler; rota çizildikten sonra arka planda çalışır.
+  function loadHazards(seq, coords, nearestIndex, cameras) {
+    const status = $('alerts-status');
+    status.textContent = 'Hemzemin geçit, okul geçidi ve tehlike noktaları yükleniyor…';
+    Veri.routeHazards(coords).then((list) => {
+      if (seq !== requestSeq) return;
+      const camIds = new Set(cameras.map((c) => c.id));
+      let added = 0;
+      list.forEach((h) => {
+        const idx = nearestIndex([h.lat, h.lon], 0.2);
+        if (idx < 0) return;
+        const pos = [h.lat, h.lon];
+        if (h.kind === 'kamera') {
+          if (camIds.has(h.id) || cameras.some((c) => Veri.fastKm([c.lat, c.lon], pos) < 0.03)) return;
+          const c = { id: h.id, tur: 'sabit', lat: h.lat, lon: h.lon, hiz: Yol.parseLimit(h.maxspeed), ad: h.name || null };
+          addLayer(L.marker(pos, { icon: L.divIcon({ className: '', html: `<div class="blink-marker kamera sabit"><span>${c.hiz || '📷'}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 600 }))
+            .bindPopup(cameraPopup(c));
+          warnPoints.push(cameraWarning(c));
+          alerts.push({ idx, coords: pos, icon: '📷', text: `${cameraType(c).label}${c.hiz ? ` (${c.hiz} km/s)` : ''}` });
+          $('stat-kamera').textContent = +$('stat-kamera').textContent + 1;
+          added++;
+          return;
+        }
+        if (h.kind === 'tabela') {
+          const lim = Yol.parseLimit(h.maxspeed);
+          if (lim) addLayer(L.marker(pos, { icon: L.divIcon({ className: '', html: `<i class="speed-limit-sign">${lim}</i>`, iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 300 }))
+            .bindPopup(`<b>Hız sınırı tabelası: ${lim} km/s</b><br><small>Kaynak: OpenStreetMap</small>`);
+          return;
+        }
+        const info = hazardInfo(h);
+        addLayer(L.marker(pos, { icon: L.divIcon({ className: '', html: `<div class="poi-marker ${h.kind} blink">${info.icon}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] }), zIndexOffset: 450 }))
+          .bindPopup(`<b>${info.icon} ${esc(info.label)}</b><br><small>Kaynak: OpenStreetMap</small>`);
+        warnPoints.push({
+          key: `osm:${h.id}`, type: h.kind, dist: 0.4, coords: pos,
+          say: `Dikkat! 400 metre sonra ${info.say}. Yavaşlayın.`,
+          text: `${info.icon} 400 m sonra ${info.label.toLocaleLowerCase('tr')}`,
+        });
+        alerts.push({ idx, coords: pos, icon: info.icon, text: info.label });
+        added++;
+      });
+      renderAlerts();
+      status.textContent = added ? `${added} ek nokta OpenStreetMap'ten eklendi.` : '';
+    }).catch(() => {
+      if (seq === requestSeq) status.textContent = 'Ek tehlike noktaları şu an alınamadı; kameralar ve İçişleri verisi gösteriliyor.';
+    });
+  }
 
   async function calculateRoute() {
     const from = ilById.get(startSel.value);
@@ -362,7 +452,7 @@
       $('stat-kontrol').textContent = rec ? kontrol : '—';
       $('stat-koridor').textContent = koridor;
       $('stat-kamera').textContent = cameras.length;
-      setRisk(Math.min(99, Math.round(((radar + kontrol + koridor) / 45) * 100)), !!rec);
+      setRisk(Math.min(99, Math.round(((radar + kontrol + koridor + cameras.length) / 45) * 100)), !!rec);
 
       const meta = [`${Math.round(distKm)} km${approx ? ' (yaklaşık)' : ''}`];
       if (durationMin) meta.push(`~${Math.floor(durationMin / 60)} sa ${Math.round(durationMin % 60)} dk`);
@@ -373,7 +463,17 @@
 
       renderCorridors(listed);
       const breakdown = rec ? (rec.gecen_iller || []) : [];
-      renderBreakdown(breakdown);
+      // İl bazında kamera sayısı (rotanın o ilden geçen bölümündeki kameralar)
+      const segs = Veri.provinceSegments(dense, ILLER);
+      const camCounts = new Map();
+      cameras.forEach((c) => {
+        for (const [id, s] of segs) if (c.routeIndex >= s.first && c.routeIndex <= s.last) { camCounts.set(id, (camCounts.get(id) || 0) + 1); break; }
+      });
+      renderBreakdown(breakdown, camCounts);
+      alerts = [];
+      alertDense = dense;
+      alertCum = [0];
+      for (let i = 1; i < dense.length; i++) alertCum.push(alertCum[i - 1] + Veri.fastKm(dense[i - 1], dense[i]));
 
       // Harita çizimi
       const line = addLayer(L.polyline(coords, { color: '#2563eb', weight: 6, opacity: 0.85, dashArray: approx ? '4 8' : null }));
@@ -387,8 +487,9 @@
         addLayer(L.polyline(cc, { color: '#ef4444', weight: 8, opacity: 0.95, dashArray: '10 8', className: 'blink-line' })).bindPopup(popup);
         const mid = cc[Math.floor(cc.length / 2)];
         addLayer(L.marker(mid, { icon: L.divIcon({ className: '', html: `<div class="speed-limit-sign blink">${limit}</div>`, iconSize: [30, 30], iconAnchor: [15, 15] }) }).bindPopup(popup));
+        alerts.push({ idx: c.routeIndex ?? 0, coords: cc[0], icon: '⚡', text: `Hız koridoru başlıyor: ${c.name || 'Hız koridoru'} (${limit} km/s${c.length ? `, ${c.length} km` : ''})` });
         warnPoints.push({
-          key: `k${i}`, coords: cc[0],
+          key: `k${i}`, type: 'koridor', coords: cc[0],
           say: `Dikkat! ${WARN_DISTANCE_KM} kilometre sonra ${limit} kilometre hız sınırlı hız koridoru başlıyor.`,
           text: `⚡ ${WARN_DISTANCE_KM} km sonra hız koridoru (${limit} km/s)`,
         });
@@ -401,12 +502,12 @@
           zIndexOffset: 600,
         })).bindPopup(cameraPopup(c));
         warnPoints.push(cameraWarning(c));
+        alerts.push({ idx: c.routeIndex, coords: [c.lat, c.lon], icon: '📷', text: `${cameraType(c).label}${c.hiz ? ` (${c.hiz} km/s)` : ''}` });
       });
 
       // İçişleri verisi il bazındadır (kesin nokta yok): radar ve kontrol işaretleri,
       // rotanın o ilden geçen bölümünün ortasına yerleştirilir.
       if (breakdown.length) {
-        const segs = Veri.provinceSegments(dense, ILLER);
         breakdown.forEach((it, i) => {
           const il = ilById.get(Veri.slug(it.City || it.name));
           const r = toInt(it.Radarli ?? it.radarli);
@@ -414,14 +515,16 @@
           if (!il || r + rs === 0) return;
           let s = segs.get(il.id);
           if (!s) { const n = nearestIndex([il.lat, il.lon], 60); if (n < 0) return; s = { first: n, last: n }; }
-          const at = (f) => dense[Math.round(s.first + (s.last - s.first) * f)];
+          const atIdx = (f) => Math.round(s.first + (s.last - s.first) * f);
+          const at = (f) => dense[atIdx(f)];
           const note = '<br><small>Konum il bazında yaklaşıktır; kesin denetim noktası değildir.</small>';
           if (r > 0) {
             const pos = at(0.4);
             addLayer(L.marker(pos, { icon: L.divIcon({ className: '', html: `<div class="blink-marker radar"><span>${r}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 500 }))
               .bindPopup(`<b>📷 ${esc(il.ad)} — ${r} radarlı denetim</b>${note}`);
+            alerts.push({ idx: atIdx(0.4), icon: '🔴', text: `Radar denetim bölgesi — ${il.ad}: ${r} radarlı denetim (il bazında)` });
             warnPoints.push({
-              key: `r${i}`, coords: pos,
+              key: `r${i}`, type: 'radar', coords: pos,
               say: `Dikkat! ${WARN_DISTANCE_KM} kilometre sonra radar denetim bölgesi. ${il.ad} ilinde ${r} radarlı denetim noktası bulunuyor.`,
               text: `📷 ${WARN_DISTANCE_KM} km sonra radar bölgesi (${il.ad}: ${r})`,
             });
@@ -430,8 +533,9 @@
             const pos = at(0.6);
             addLayer(L.marker(pos, { icon: L.divIcon({ className: '', html: `<div class="blink-marker kontrol"><span>${rs}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 500 }))
               .bindPopup(`<b>👮 ${esc(il.ad)} — ${rs} radarsız kontrol noktası</b>${note}`);
+            alerts.push({ idx: atIdx(0.6), icon: '🔵', text: `Kontrol noktası bölgesi — ${il.ad}: ${rs} kontrol noktası (il bazında)` });
             warnPoints.push({
-              key: `c${i}`, coords: pos,
+              key: `c${i}`, type: 'kontrol', coords: pos,
               say: `Dikkat! ${WARN_DISTANCE_KM} kilometre sonra trafik kontrol noktası bölgesi. ${il.ad} ilinde ${rs} kontrol noktası bulunuyor.`,
               text: `👮 ${WARN_DISTANCE_KM} km sonra kontrol noktası bölgesi (${il.ad}: ${rs})`,
             });
@@ -442,6 +546,8 @@
       map.fitBounds(line.getBounds(), { padding: [30, 30] });
       setTimeout(() => map.invalidateSize(), 150);
       rememberRoute(from.id, to.id);
+      renderAlerts();
+      loadHazards(seq, coords, nearestIndex, cameras);
     } catch (err) {
       console.error(err);
       if (seq === requestSeq) {
@@ -500,9 +606,10 @@
     if (zoomOnFix) { zoomOnFix = false; if (map.getZoom() < 14) map.setView(ll, 15); else map.panTo(ll); } else map.panTo(ll);
 
     warnPoints.forEach((pt) => {
-      if (!warned.has(pt.key) && distanceKm(lat, lon, pt.coords[0], pt.coords[1]) <= WARN_DISTANCE_KM) {
-        // Birbirine çok yakın noktalar (ör. aynı yerden başlayan iki koridor) için tek uyarı ver.
-        warnPoints.forEach((o) => { if (distanceKm(pt.coords[0], pt.coords[1], o.coords[0], o.coords[1]) < 0.5) warned.add(o.key); });
+      if (!warned.has(pt.key) && distanceKm(lat, lon, pt.coords[0], pt.coords[1]) <= (pt.dist || WARN_DISTANCE_KM)) {
+        // Aynı türden birbirine çok yakın noktalar (ör. aynı yerden başlayan iki koridor) için tek uyarı ver.
+        warnPoints.forEach((o) => { if (o.type === pt.type && distanceKm(pt.coords[0], pt.coords[1], o.coords[0], o.coords[1]) < 0.5) warned.add(o.key); });
+        warned.add(pt.key);
         speak(pt.say);
         toast(pt.text);
       }
@@ -577,9 +684,9 @@
       },
       { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
     );
-    Yol.start({ map, speak, toast });
+    Yol.start({ map, speak, toast, warned });
     zoomOnFix = true;
-    speak('Sürüş modu başlatıldı. İyi yolculuklar.');
+    speak('Sürüş modu başlatıldı. İyi yolculuklar.', true);
   }
 
   function stopDrive() {
@@ -688,7 +795,7 @@
     if (!s) return;
     s.classList.add('gone');
     setTimeout(() => s.remove(), 500);
-  }, 1200);
+  }, 1800);
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});

@@ -51,6 +51,8 @@ code { background: #1e293b; padding: 0 4px; border-radius: 4px; color: #fcd34d; 
   transition: opacity .45s ease, visibility .45s ease;
 }
 #splash-screen.gone { opacity: 0; visibility: hidden; }
+#splash-screen img { width: min(80vw, 70vh, 520px); height: auto; animation: splashIn .9s ease-out both; }
+@keyframes splashIn { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
 
 /* Üst bar */
 .appbar {
@@ -179,7 +181,7 @@ code { background: #1e293b; padding: 0 4px; border-radius: 4px; color: #fcd34d; 
 .bar i { display: block; height: 100%; }
 
 /* Harita */
-.map-card { position: relative; padding: 0; overflow: hidden; height: 58vh; min-height: 340px; }
+.map-card { position: relative; isolation: isolate; padding: 0; overflow: hidden; height: 58vh; min-height: 340px; }
 #map { position: absolute; inset: 0; background: #0b0f17; }
 .map-card.fullscreen-map {
   position: fixed; inset: 0; z-index: 99999; height: 100%; border-radius: 0; border: 0;
@@ -218,6 +220,12 @@ code { background: #1e293b; padding: 0 4px; border-radius: 4px; color: #fcd34d; 
   background: #fff; border: 2px solid #f59e0b; font-size: 14px; box-shadow: 0 2px 6px rgba(0, 0, 0, .4);
 }
 .poi-marker.tren { border-color: #dc2626; }
+.poi-marker.tehlike { border-color: #f59e0b; }
+.alert-list { list-style: none; margin: 0; padding: 0; max-height: 420px; overflow-y: auto; }
+.alert-list li[data-i] { display: grid; grid-template-columns: 52px 22px 1fr; align-items: center; gap: 6px; padding: 7px 4px; border-bottom: 1px solid var(--line); font-size: 13px; cursor: pointer; }
+.alert-list li[data-i]:hover, .alert-list li[data-i]:focus { background: rgba(255, 255, 255, .04); outline: none; }
+.al-km { font-weight: 800; color: var(--muted); font-size: 12px; text-align: right; }
+.al-ico { text-align: center; }
 .lg-emoji { font-size: 12px; }
 .map-btn { font-size: 18px; line-height: 30px !important; text-align: center; background: var(--card) !important; color: #fff !important; }
 .leaflet-bar a { background: var(--card); color: #fff; border-color: var(--line); }

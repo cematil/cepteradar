@@ -134,6 +134,62 @@
     return camerasPromise;
   }
 
+  // Douglas-Peucker sadeleştirme ([lat, lon] dizisi, tolerans derece cinsinden)
+  function simplify(points, tol) {
+    if (points.length < 3) return points.slice();
+    const keep = new Uint8Array(points.length);
+    keep[0] = keep[points.length - 1] = 1;
+    const stack = [[0, points.length - 1]];
+    while (stack.length) {
+      const [a, b] = stack.pop();
+      const [ax, ay] = points[a], [bx, by] = points[b];
+      const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+      let maxD = -1, idx = -1;
+      for (let i = a + 1; i < b; i++) {
+        const [px, py] = points[i];
+        const t = l2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l2)) : 0;
+        const ex = ax + t * dx - px, ey = ay + t * dy - py, d = ex * ex + ey * ey;
+        if (d > maxD) { maxD = d; idx = i; }
+      }
+      if (maxD > tol * tol) { keep[idx] = 1; stack.push([a, idx], [idx, b]); }
+    }
+    return points.filter((_, i) => keep[i]);
+  }
+
+  // Güzergah boyunca (yola en fazla ~50 m) OpenStreetMap'teki tehlike noktaları:
+  // hemzemin geçit, okul geçidi, tehlike tabelaları, hız kameraları ve hız sınırı tabelaları.
+  const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+  async function routeHazards(coords) {
+    const line = simplify(coords, 0.0002).map((p) => `${p[0].toFixed(5)},${p[1].toFixed(5)}`).join(',');
+    const a = `around:50,${line}`;
+    const q = `[out:json][timeout:90];
+(
+  node(${a})["railway"="level_crossing"];
+  node(${a})["highway"="crossing"]["crossing"="school"];
+  node(${a})["hazard"];
+  node(${a})["highway"="speed_camera"];
+  node(${a})["traffic_sign"~"maxspeed"]["maxspeed"];
+);
+out qt;`;
+    for (const url of OVERPASS) {
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 95000);
+        const res = await fetch(url, { method: 'POST', body: `data=${encodeURIComponent(q)}`, headers: { 'content-type': 'application/x-www-form-urlencoded' }, signal: ctrl.signal });
+        clearTimeout(timer);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const d = await res.json();
+        return asList(d.elements).filter((e) => e.type === 'node' && e.tags).map((e) => {
+          const t = e.tags;
+          const kind = t.highway === 'speed_camera' ? 'kamera' : t.railway === 'level_crossing' ? 'tren'
+            : t.crossing === 'school' ? 'okul' : t.hazard ? 'tehlike' : 'tabela';
+          return { id: `node/${e.id}`, kind, lat: e.lat, lon: e.lon, maxspeed: t.maxspeed, hazard: t.hazard, name: t.name };
+        });
+      } catch (e) { /* sıradaki sunucu */ }
+    }
+    throw new Error('Overpass servisine ulaşılamadı');
+  }
+
   // Yaklaşık mesafe (km) — kısa mesafelerde yeterince hassas ve hızlı.
   function fastKm(a, b) {
     const x = (b[1] - a[1]) * Math.cos(((a[0] + b[0]) / 2) * Math.PI / 180);
@@ -259,6 +315,6 @@
   window.Veri = {
     slug, loadIndex, hasRoute, findRoute, isStraightLine, osrmRoute, weather,
     loadCorridors, densify, buildRouteIndex, corridorsOnRoute, provinceSegments,
-    loadCameras, camerasOnRoute, pointIndex, fastKm,
+    loadCameras, camerasOnRoute, pointIndex, fastKm, routeHazards,
   };
 })();
