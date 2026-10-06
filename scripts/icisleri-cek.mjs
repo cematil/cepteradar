@@ -13,6 +13,10 @@
 //   node scripts/icisleri-cek.mjs --engel-bekle 60      -> site sorguları engellerse 60 dk bekle (varsayılan 30)
 //   node scripts/icisleri-cek.mjs --yeniden             -> var olan rotaları da yeniden indir
 //   node scripts/icisleri-cek.mjs --gorunmez            -> tarayıcı penceresini gösterme
+//   node scripts/icisleri-cek.mjs --iki-yon             -> ters yönü kayıtlı rotaları da indir
+//
+// Uygulama A→B rotası yoksa B→A verisini kullandığı için varsayılan olarak her il çiftinin
+// tek yönü indirilir (sorgu sayısı yarıya iner).
 //
 // Site kısa sürede çok sorguya izin vermiyor; program yavaş ilerler, engel görünce bekleyip
 // kendiliğinden devam eder. Bilgisayarı açık bırakmanız yeterli. Ctrl+C ile durdurup tekrar
@@ -39,6 +43,7 @@ const varisFiltre = liste(arg('varis'));
 const paralel = Math.max(1, Math.min(3, parseInt(arg('paralel', '1'), 10) || 1));
 const yeniden = !!arg('yeniden', false);
 const gorunmez = !!arg('gorunmez', false);
+const ikiYon = !!arg('iki-yon', false);
 const bekleme = (parseFloat(arg('bekle', '6')) || 6) * 1000;
 const engelBekle = (parseFloat(arg('engel-bekle', '30')) || 30) * 60000;
 
@@ -49,11 +54,19 @@ const ONCELIK = ['istanbul', 'ankara', 'izmir', 'bursa', 'antalya', 'konya', 'ad
 const sira = (il) => { const i = ONCELIK.indexOf(il.id); return i < 0 ? 100 + il.plaka : i; };
 
 // İş listesi: her kalkış ili için eksik varış illeri
+const kayitli = new Set();
+if (!yeniden) for (const il of ILLER) for (const r of loadCity(il.id)) kayitli.add(`${il.id}|${slug(r.varis_il)}`);
+const planli = new Set();
 const isler = ILLER.slice().sort((a, b) => sira(a) - sira(b))
   .filter((a) => !kalkisFiltre || kalkisFiltre.includes(a.id))
   .map((a) => {
-    const mevcut = new Set(yeniden ? [] : loadCity(a.id).map((r) => slug(r.varis_il)));
-    const hedefler = ILLER.slice().sort((x, y) => sira(x) - sira(y)).filter((b) => b.id !== a.id && (!varisFiltre || varisFiltre.includes(b.id)) && !mevcut.has(b.id));
+    const hedefler = ILLER.slice().sort((x, y) => sira(x) - sira(y)).filter((b) => {
+      if (b.id === a.id || (varisFiltre && !varisFiltre.includes(b.id))) return false;
+      if (kayitli.has(`${a.id}|${b.id}`)) return false;
+      if (!ikiYon && (kayitli.has(`${b.id}|${a.id}`) || planli.has(`${b.id}|${a.id}`))) return false;
+      planli.add(`${a.id}|${b.id}`);
+      return true;
+    });
     return { kalkis: a, hedefler };
   })
   .filter((x) => x.hedefler.length);
@@ -236,7 +249,8 @@ async function rotaCek(page, form, a, b) {
   const json = await res.json().catch(() => null);
   if (!json || json.success === false || !json.data) {
     const mesaj = json?.message || `Beklenmeyen cevap (HTTP ${res.status()})`;
-    if (/limit|fazla|çok|cok|sınır|sinir|captcha|doğrula|dogrula|bekle|deneyin/i.test(mesaj)) throw new EngelHatasi(mesaj);
+    // "Servis çağrılırken hata oluştu": site birkaç sorgudan sonra bunu veriyor (sorgu sınırı).
+    if (/limit|fazla|çok|cok|sınır|sinir|captcha|doğrula|dogrula|bekle|deneyin|servis|hata oluştu/i.test(mesaj)) throw new EngelHatasi(mesaj);
     throw new Error(mesaj);
   }
   const kayit = donustur(json);
@@ -249,6 +263,10 @@ async function calisan(browser, kuyruk) {
   let page = await browser.newPage();
   let form = await sayfaHazirla(page);
   let engelSayisi = 0;
+  let engelBaslangic = 0;
+  let engelOncesiSorgu = 0;
+  let sorgu = 0;
+  const deneme = new Map();
   const yenidenAc = async () => {
     if (page.isClosed()) page = await browser.newPage();
     form = await sayfaHazirla(page);
@@ -260,7 +278,13 @@ async function calisan(browser, kuyruk) {
       const hedef = hedefler[i];
       try {
         if (page.isClosed()) await yenidenAc();
+        sorgu++;
         tampon.push(await rotaCek(page, form, kalkis, hedef));
+        if (engelBaslangic) {
+          console.log(`\n  ▶ Site yeniden cevap veriyor. Engel yaklaşık ${Math.round((Date.now() - engelBaslangic) / 60000)} dk sürdü; engelden önce ${engelOncesiSorgu} sorgu yapılabilmişti.`);
+          engelBaslangic = 0;
+          sorgu = 1;
+        }
         engelSayisi = 0;
         bitti++;
       } catch (e) {
@@ -272,13 +296,19 @@ async function calisan(browser, kuyruk) {
         }
         if (e instanceof EngelHatasi) {
           engelSayisi++;
+          if (!engelBaslangic) { engelBaslangic = Date.now(); engelOncesiSorgu = sorgu - 1; }
           if (tampon.length) kaydet(tampon.splice(0));
           if (engelSayisi === 1) await taniKaydet(page, `${kalkis.ad} → ${hedef.ad}: ${e.message}`);
+          // Bu rotanın kendisi bozuk olabilir: 3 kez engele denk gelirse atlanır.
+          const n = (deneme.get(hedef.id) || 0) + 1;
+          deneme.set(hedef.id, n);
           const ms = engelBekle * Math.min(engelSayisi, 4);
           console.warn(`\n  ⏸ ${e.message}. Site sorgu sınırına ulaşılmış olabilir; ${Math.round(ms / 60000)} dk bekleniyor (saat ${saat(ms)}'de devam).`);
           await new Promise((r) => setTimeout(r, ms));
           await yenidenAc().catch(() => {});
-          i--; continue; // aynı rotayı tekrar dene
+          if (n < 3) hedefler.push(hedef); // rota listenin sonunda tekrar denenir
+          else { hata++; bitti++; console.warn(`\n  ! ${kalkis.ad} → ${hedef.ad}: 3 denemede alınamadı, atlandı.`); }
+          continue;
         }
         hata++;
         bitti++;
