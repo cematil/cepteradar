@@ -9,18 +9,8 @@
   const WARN_DISTANCE_KM = 2; // radar, koridor ve yol çalışması uyarı mesafesi
   const STORE_KEY = 'cepteradar:son-rotalar';
 
-  // Ses Efekti (Önceden Yükleme)
-  const beepSound = new Audio('assets/sesler/uyari.mp3');
-  beepSound.preload = 'auto';
-
   // Android WebView Ses Kilidini Açma (Ekrana ilk dokunma / tıklamada ses engine'ini uyandırır)
   function unlockAudioEngine() {
-    if (beepSound) {
-      beepSound.play().then(() => {
-        beepSound.pause();
-        beepSound.currentTime = 0;
-      }).catch(() => {});
-    }
     if ('speechSynthesis' in window) {
       window.speechSynthesis.resume();
     }
@@ -68,13 +58,10 @@
   const angleDiff = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
   const distWord = (m) => (m >= 1000 ? `${String(m / 1000).replace('.', ',')} kilometre` : `${m} metre`);
   const distShort = (m) => (m >= 1000 ? `${String(m / 1000).replace('.', ',')} km` : `${m} m`);
+
+  // MP3/Bip yerine tamamen Türkçe Metin Okuma (TTS) ile sesli konuşur
   function announce(pt, m) {
-    try {
-      beepSound.currentTime = 0;
-      const p = beepSound.play();
-      if (p && p.catch) p.catch(() => {});
-    } catch (e) {}
-    speak(`Dikkat! ${distWord(m)} sonra ${pt.what}.${pt.extra}`);
+    speak(`Dikkat! ${distWord(m)} sonra ${pt.what}.${pt.extra}`, true);
     toast(`${pt.icon} ${distShort(m)} sonra ${pt.what}${pt.note ? ` (${pt.note})` : ''}`);
     if (window.Surus) Surus.flash(pt.type);
   }
