@@ -8,6 +8,7 @@
   const byName = (a, b) => a.ad.localeCompare(b.ad, 'tr', { sensitivity: 'base' });
   const WARN_DISTANCE_KM = 2; // radar, koridor ve yol çalışması uyarı mesafesi
   const STORE_KEY = 'cepteradar:son-rotalar';
+  const DARK_MODE_KEY = 'cepteradar:koyu-tema';
 
   // Android WebView Ses Kilidini Açma (Ekrana ilk dokunma / tıklamada ses engine'ini uyandırır)
   function unlockAudioEngine() {
@@ -59,7 +60,7 @@
   const distWord = (m) => (m >= 1000 ? `${String(m / 1000).replace('.', ',')} kilometre` : `${m} metre`);
   const distShort = (m) => (m >= 1000 ? `${String(m / 1000).replace('.', ',')} km` : `${m} m`);
 
-  // MP3/Bip yerine tamamen Türkçe Metin Okuma (TTS) ile sesli konuşur
+  // MP3/Bip dosyaları yerine doğrudan Türkçe Metin Okuma (TTS) ile sesli konuşur
   function announce(pt, m) {
     speak(`Dikkat! ${distWord(m)} sonra ${pt.what}.${pt.extra}`, true);
     toast(`${pt.icon} ${distShort(m)} sonra ${pt.what}${pt.note ? ` (${pt.note})` : ''}`);
@@ -90,6 +91,54 @@
     u.lang = 'tr-TR';
     if (trVoice) u.voice = trVoice;
     window.speechSynthesis.speak(u);
+  }
+
+  // Kalıcı Rehber Modalı (Butondan tıklandığında her zaman açılır)
+  function showTtsHelp() {
+    const box = document.createElement('div');
+    box.className = 'modal';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+    box.innerHTML = `<div class="modal-box tts-onay" style="text-align: left; max-width: 420px; padding: 20px;">
+      <h3 style="margin-top:0; color:#2563eb;">🔊 Sesli Uyarı ve Google TTS Rehberi</h3>
+      <p style="font-size:14px; line-height:1.5;">Uygulamada sesleri duyamıyorsanız veya konuşma dili farklı geliyorsa telefonunuzun metin okuma motorunu kontrol edin.</p>
+      <ol style="font-size:13px; margin:10px 0; padding-left:20px; line-height:1.6;">
+        <li>Telefonunuzun <b>Ayarlar > Genel Yönetim</b> menüsünü açın.</li>
+        <li><b>Metin-Konuşma (Text-To-Speech)</b> seçeneğine girin.</li>
+        <li>Tercih edilen motoru <b>Google Metin Okuma</b> yapın (Samsung TTS yerine Google TTS seçiniz).</li>
+        <li>Dil ayarının <b>Türkçe</b> olduğundan emin olun.</li>
+      </ol>
+      <div style="text-align: right; margin-top: 15px;">
+        <button type="button" class="btn btn-primary" id="btn-tts-ok" style="padding: 8px 16px;">Anladım</button>
+      </div>
+    </div>`;
+    document.body.appendChild(box);
+    document.getElementById('btn-tts-ok').addEventListener('click', () => box.remove());
+  }
+
+  // İlk rota oluşturulduğunda 1 defalık otomatik açılacak kontrol mekanizması
+  const TTS_NOTICE_KEY = 'cepteradar:tts-bildirim-gosterildi';
+  function showTtsNotice() {
+    if (store(TTS_NOTICE_KEY, false)) return;
+    save(TTS_NOTICE_KEY, true);
+    showTtsHelp();
+  }
+
+  // Koyu Mod / Açık Mod Yönetimi
+  function toggleDarkMode(enable) {
+    const isDark = enable ?? !document.body.classList.contains('dark-mode');
+    document.body.classList.toggle('dark-mode', isDark);
+    save(DARK_MODE_KEY, isDark);
+
+    if (typeof map !== 'undefined' && typeof streetTile !== 'undefined' && typeof darkTile !== 'undefined') {
+      if (isDark) {
+        if (map.hasLayer(streetTile)) map.removeLayer(streetTile);
+        if (!map.hasLayer(darkTile)) darkTile.addTo(map);
+      } else {
+        if (map.hasLayer(darkTile)) map.removeLayer(darkTile);
+        if (!map.hasLayer(streetTile)) streetTile.addTo(map);
+      }
+    }
   }
 
   // ---------------------------------------------------------------- HIZ KAMERALARI (OSM)
@@ -610,6 +659,9 @@
       rememberRoute(from.id, to.id);
       renderAlerts();
       loadHazards(seq, coords, nearestIndex, cameras);
+
+      // Rota başarıyla oluşturulduğunda ilk kullanıma özel TTS bilgilendirmesini tetikler
+      showTtsNotice();
     } catch (err) {
       console.error(err);
       if (seq === requestSeq) {
@@ -745,6 +797,7 @@
 
   async function startDrive() {
     if (!(await locationConsent())) return;
+
     const btn = $('btn-drive');
     btn.classList.add('active');
     btn.textContent = '■ Sürüşü Bitir';
@@ -878,9 +931,18 @@
     syncDisables();
     renderRecent();
     calculateRoute();
+
+    // Uygulama açılışında kayıtlı koyu tema tercihini yükler
+    if (store(DARK_MODE_KEY, false)) {
+      toggleDarkMode(true);
+      setTimeout(() => {
+        const chk = document.getElementById('chk-dark-mode');
+        if (chk) chk.checked = true;
+      }, 100);
+    }
   }
 
-  window.CepteRadar = { map, calculateRoute, SYM, symIcon, toast, speak, locationConsent };
+  window.CepteRadar = { map, calculateRoute, SYM, symIcon, toast, speak, locationConsent, showTtsHelp, toggleDarkMode };
   init();
   setTimeout(() => {
     const s = $('splash-screen');

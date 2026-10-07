@@ -125,7 +125,7 @@ body.mobil {
   max-height: 62%; overflow-y: auto;
 }
 .sheet-handle { display: block; width: 100%; height: 26px; margin: -6px 0 6px; padding: 0; border: 0; background: none; cursor: pointer; }
-.sheet-handle i { display: block; width: 48px; height: 5px; margin: 0 auto; border-radius: 9px; background: rgba(255, 255, 255, .55); }
+.sheet-handle i { display: block; width: 48px; height: 5px; margin: 0 auto; border-radius: 999px; background: rgba(255, 255, 255, .55); }
 .sheet-mini { display: none; width: 100%; align-items: center; justify-content: space-between; gap: 6px; padding: 0 4px 8px; border: 0; background: none; color: #fff; cursor: pointer; font-family: inherit; }
 .sheet-mini span { display: inline-flex; align-items: center; gap: 5px; font-size: 18px; }
 .sheet-mini i { width: 14px; height: 14px; border: 2px solid #fff; border-radius: 50%; }
@@ -229,3 +229,40 @@ body.gizle-lejant .map-legend, body.gizle-bildir .bildir-btn { display: none !im
 .scr-map .map-card.fullscreen-map .koridor-panel, .scr-map .map-card.fullscreen-map .bld-soru { top: calc(104px + var(--safe-t)); }
 .scr-map .map-card.fullscreen-map .kadran { bottom: calc(76px + var(--safe-b)); }
 .scr-map .map-card.fullscreen-map .bildir-btn { bottom: calc(76px + var(--safe-b)); }
+
+/* ---------------------------------------------------------------- Koyu Mod (Dark Mode) Override Stilleri */
+body.dark-mode {
+  --bg: #0b1120 !important;
+  --card: #121a2b !important;
+  --card-2: #0f1626 !important;
+  --text: #f8fafc !important;
+  --muted: #94a3b8 !important;
+  --line: #1f2a40 !important;
+  background-color: #0b1120 !important;
+  color: #f8fafc !important;
+}
+
+body.dark-mode .scr-home,
+body.dark-mode .scr-details,
+body.dark-mode .h-card,
+body.dark-mode .d-card,
+body.dark-mode .h-ayar,
+body.dark-mode .tile,
+body.dark-mode .how-box,
+body.dark-mode .modal-box,
+body.dark-mode .tabbar {
+  background-color: #121a2b !important;
+  color: #f8fafc !important;
+  border-color: #1f2a40 !important;
+}
+
+body.dark-mode select,
+body.dark-mode .h-field select {
+  color: #f8fafc !important;
+  background-color: #0f1626 !important;
+}
+
+body.dark-mode .btn-white {
+  background-color: #1e293b !important;
+  color: #60a5fa !important;
+}

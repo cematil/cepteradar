@@ -90,6 +90,7 @@
 
         <details class="h-ayar" id="ayarlar">
             <summary>⚙️ Ekran ve uyarı ayarları</summary>
+            <label><input type="checkbox" id="chk-dark-mode" onchange="if(window.CepteRadar && window.CepteRadar.toggleDarkMode) window.CepteRadar.toggleDarkMode(this.checked)"> 🌙 Koyu Tema (Dark Mode)</label>
             <label><input type="checkbox" data-ayar="sessiz"> Sesli uyarıları kapat</label>
             <label><input type="checkbox" data-ayar="gizle-flas"> Ekran parlamasını kapat</label>
             <label><input type="checkbox" data-ayar="gizle-gps"> GPS durumunu gizle</label>
@@ -98,6 +99,7 @@
             <label><input type="checkbox" data-ayar="gizle-lejant"> Lejantı gizle</label>
             <label><input type="checkbox" data-ayar="gizle-bildir"> Bildir düğmesini gizle</label>
             <button type="button" class="btn-white h-ses-dene" id="ses-dene">🔊 Sesi dene</button>
+            <button type="button" class="btn-white h-ses-dene" onclick="if(window.CepteRadar && window.CepteRadar.showTtsHelp) window.CepteRadar.showTtsHelp();" style="margin-top:8px; width:100%; border-color:#2563eb; color:#2563eb;">❓ Ses Gelmiyor veya Yanlış Dilde mi? (Google TTS Ayarı)</button>
         </details>
 
         <div class="h-recent">
