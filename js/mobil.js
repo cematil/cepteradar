@@ -80,5 +80,28 @@
   if (window.ResizeObserver) new ResizeObserver(syncSheet).observe(sheet);
   syncSheet();
 
+  // Alt kart: küçült / büyüt. Sürüş başlayınca kendiliğinden küçülür, haritaya yer açılır.
+  const toggleBtn = $('sheet-toggle');
+  function setSheet(kucuk) {
+    sheet.classList.toggle('kucuk', kucuk);
+    toggleBtn.setAttribute('aria-expanded', String(!kucuk));
+    // Özet satırındaki sayılar ana sayaçlardan kopyalanır
+    sheet.querySelectorAll('[data-kaynak]').forEach((b) => { b.textContent = $(b.dataset.kaynak).textContent; });
+    setTimeout(syncSheet, 30);
+  }
+  toggleBtn.addEventListener('click', () => setSheet(!sheet.classList.contains('kucuk')));
+  $('sheet-mini').addEventListener('click', () => setSheet(false));
+  // Kaydırma: tutamaktan aşağı çekince küçült, yukarı çekince büyüt
+  let y0 = null;
+  sheet.addEventListener('touchstart', (e) => { y0 = e.target.closest('.sheet-handle, .sheet-mini') ? e.touches[0].clientY : null; }, { passive: true });
+  sheet.addEventListener('touchend', (e) => {
+    if (y0 == null) return;
+    const dy = e.changedTouches[0].clientY - y0;
+    y0 = null;
+    if (dy > 40) setSheet(true); else if (dy < -40) setSheet(false);
+  }, { passive: true });
+  const drive = $('btn-drive');
+  new MutationObserver(() => setSheet(drive.classList.contains('active'))).observe(drive, { attributes: true, attributeFilter: ['class'] });
+
   show(location.hash.slice(1));
 })();

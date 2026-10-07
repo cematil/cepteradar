@@ -119,8 +119,15 @@
             <button type="button" class="round-btn orange" data-go="home" aria-label="Yeni rota">⌕</button>
         </div>
 
-        <div class="sheet">
-            <div class="sheet-handle"></div>
+        <div class="sheet" id="sheet">
+            <button type="button" class="sheet-handle" id="sheet-toggle" aria-label="Alt kartı küçült veya büyüt" aria-expanded="true"><i></i></button>
+            <button type="button" class="sheet-mini" id="sheet-mini" aria-label="Alt kartı büyüt">
+                <span><i class="dot-r"></i><b data-kaynak="stat-radar">–</b></span>
+                <span><i class="dot-k"></i><b data-kaynak="stat-kontrol">–</b></span>
+                <span><i class="dot-c"></i><b data-kaynak="stat-koridor">–</b></span>
+                <span><i class="dot-m"></i><b data-kaynak="stat-kamera">–</b></span>
+                <em>▲</em>
+            </button>
             <div class="sheet-stats">
                 <div><i class="ic ic-radar"></i><b id="stat-radar">–</b><small>Radar</small></div>
                 <div><i class="ic ic-kontrol"></i><b id="stat-kontrol">–</b><small>Kontrol</small></div>

@@ -249,14 +249,36 @@
       const p = await position();
       if (p.acc && p.acc > 200) { cr.toast('Konumunuz yeterince hassas değil; biraz sonra tekrar deneyin.'); return; }
       await api.add(tur, p.lat, p.lon);
+      try { localStorage.setItem(SON_KEY, String(Date.now())); } catch (err) { /* gizli mod */ }
       setCells(cellsAround(p.lat, p.lon));
       cr.toast(`${TURLER[tur].icon} Bildiriminiz alındı. Teşekkürler! 1 saat görünecek.`);
     } catch (e) {
-      const msg = String(e && (e.code || e.message) || '');
-      if (/permission/i.test(msg)) cr.toast('Çok sık bildirim yapıldı. Lütfen 2 dakika sonra tekrar deneyin.');
-      else if (/geolocation|konum|denied|1/.test(msg) && !/firestore/i.test(msg)) cr.toast('Konum alınamadı. Konum izninizi kontrol edin.');
-      else cr.toast('Bildirim gönderilemedi. İnternet bağlantınızı kontrol edin.');
+      cr.toast(hataMesaji(e), 7000);
+      console.warn('Bildirim hatası', e);
     }
+  }
+
+  // Hata kodunu kullanıcıya anlaşılır biçimde söyler (kod sonunda; sorun bildiriminde işe yarar).
+  const SON_KEY = 'cepteradar:son-bildirim';
+  function hataMesaji(e) {
+    const code = e && e.code;
+    if (typeof code === 'number') { // konum hatası
+      return code === 1 ? 'Konum izni verilmedi. Telefon ayarlarından konum iznini açın.'
+        : code === 3 ? 'Konum zamanında alınamadı. Açık alanda tekrar deneyin.' : 'Konum alınamadı. GPS\'in açık olduğundan emin olun.';
+    }
+    const c = String(code || (e && e.message) || 'bilinmeyen');
+    const tag = ` (${c})`;
+    if (/operation-not-allowed|admin-restricted/.test(c)) return 'Bildirim sistemi henüz açık değil: Firebase\'de anonim giriş kapalı.' + tag;
+    if (/api-key|invalid-api|app-not-authorized|unauthorized-domain/.test(c)) return 'Bildirim sistemi ayarı hatalı (Firebase anahtarı/alan adı).' + tag;
+    if (/network|unavailable|deadline/.test(c)) return 'Bildirim gönderilemedi: internet bağlantısı yok.' + tag;
+    if (/not-found/.test(c)) return 'Bildirim veritabanı bulunamadı: Firestore oluşturulmamış.' + tag;
+    if (/permission-denied|insufficient/.test(c)) {
+      let son = 0;
+      try { son = +localStorage.getItem(SON_KEY) || 0; } catch (err) { /* gizli mod */ }
+      return Date.now() - son < 125000 ? 'Çok sık bildirim: 2 dakikada en fazla 1 bildirim yapılabilir.'
+        : 'Bildirim reddedildi: Firestore güvenlik kuralları yayınlanmamış olabilir.' + tag;
+    }
+    return 'Bildirim gönderilemedi.' + tag;
   }
 
   async function vote(id, evet) {
@@ -267,7 +289,7 @@
       saveVote(id, evet);
       CR().toast(evet ? '✅ Teşekkürler, bildirim süresi uzatıldı.' : '❌ Teşekkürler, bildirildi.');
     } catch (e) {
-      CR().toast('Oy gönderilemedi.');
+      CR().toast(hataMesaji(e).replace('Bildirim gönderilemedi', 'Oy gönderilemedi'), 7000);
     }
   }
 
