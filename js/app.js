@@ -9,6 +9,22 @@
   const WARN_DISTANCE_KM = 2; // radar, koridor ve yol çalışması uyarı mesafesi
   const STORE_KEY = 'cepteradar:son-rotalar';
 
+  // Ses Efekti (Önceden Yükleme)
+  const beepSound = new Audio('assets/sesler/uyari.mp3');
+  beepSound.preload = 'auto';
+
+  // Android WebView Ses Kilidini Açma (Kullanıcı ilk dokunduğunda tetiklenir)
+  document.addEventListener('touchstart', function unlockAudio() {
+    beepSound.play().then(() => {
+      beepSound.pause();
+      beepSound.currentTime = 0;
+    }).catch(() => {});
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.resume();
+    }
+    document.removeEventListener('touchstart', unlockAudio);
+  }, { once: true });
+
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const toInt = (v) => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : 0; };
 
@@ -48,6 +64,10 @@
   const distWord = (m) => (m >= 1000 ? `${String(m / 1000).replace('.', ',')} kilometre` : `${m} metre`);
   const distShort = (m) => (m >= 1000 ? `${String(m / 1000).replace('.', ',')} km` : `${m} m`);
   function announce(pt, m) {
+    try {
+      beepSound.currentTime = 0;
+      beepSound.play().catch(() => {});
+    } catch (e) {}
     speak(`Dikkat! ${distWord(m)} sonra ${pt.what}.${pt.extra}`);
     toast(`${pt.icon} ${distShort(m)} sonra ${pt.what}${pt.note ? ` (${pt.note})` : ''}`);
     if (window.Surus) Surus.flash(pt.type);
@@ -72,10 +92,10 @@
     }
     if (!('speechSynthesis' in window)) return;
     if (interrupt) window.speechSynthesis.cancel();
+    window.speechSynthesis.resume();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'tr-TR';
     if (trVoice) u.voice = trVoice;
-    window.speechSynthesis.resume();
     window.speechSynthesis.speak(u);
   }
 
@@ -212,12 +232,11 @@
       </div>`;
     L.DomEvent.disableClickPropagation(div);
     div.querySelector('.legend-toggle').addEventListener('click', () => div.classList.toggle('collapsed'));
-    // Açık lejant haritaya dokununca kapanır (küçük ekranlarda düğmesi görünmez kalabiliyor)
     map.on('click movestart', () => div.classList.add('collapsed'));
     return div;
   };
   legend.addTo(map);
-  // KGM satırı sadece KGM katmanı açıkken görünür (haritada o zaman çizilir)
+
   const syncKgmLegend = () => document.querySelectorAll('.lg-kgm').forEach((el) => el.classList.toggle('hidden', !map.hasLayer(kgmLayer)));
   map.on('overlayadd overlayremove', syncKgmLegend);
   syncKgmLegend();
@@ -256,7 +275,6 @@
     if (current) sel.value = current;
   }
 
-  // Varış listesinde, seçili kalkış ilinden verisi olan illeri "●" ile işaretler.
   async function refreshEndOptions() {
     const idx = await Veri.loadIndex();
     const from = startSel.value;
@@ -286,8 +304,7 @@
 
   // ---------------------------------------------------------------- ROTA
   function setRisk(score, hasData, estimated) {
-    const badge = $('risk-badge');
-    $('risk-gauge').style.setProperty('--p', hasData ? score : 0);
+    const badge = $('risk-badge');$('risk-gauge').style.setProperty('--p', hasData ? score : 0);
     $('risk-score').textContent = hasData ? `%${score}` : '—';
     let level = 'none';
     if (!hasData) badge.textContent = 'VERİ YOK';
@@ -352,13 +369,11 @@
     }).join('');
   }
 
-  // Güzergah uyarı listesi (Detay bölümü): rota başından uzaklığa göre sıralı
   let alerts = [];
   let alertCum = [];
   let alertDense = [];
   function renderAlerts() {
-    const ol = $('route-alerts');
-    $('alerts-count').textContent = alerts.length ? `(${alerts.length})` : '';
+    const ol = $('route-alerts');$('alerts-count').textContent = alerts.length ? `(${alerts.length})` : '';
     if (!alerts.length) { ol.innerHTML = '<li class="muted small">Bu güzergahta kayıtlı uyarı noktası yok.</li>'; return; }
     alerts.sort((a, b) => a.idx - b.idx);
     ol.innerHTML = alerts.map((a, i) => `<li data-i="${i}" tabindex="0">
@@ -372,7 +387,6 @@
     $('panel-map').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
-  // OpenStreetMap tehlike türleri
   const HAZARD_TR = {
     animal_crossing: 'hayvan geçidi', cattle: 'hayvan geçidi', deer: 'yaban hayvanı geçidi', horse_riders: 'atlı geçidi',
     curve: 'tehlikeli viraj', curves: 'tehlikeli virajlar', dangerous_curve: 'tehlikeli viraj',
@@ -393,8 +407,6 @@
 
   const pinIcon = (cls) => symIcon(SYM.pin(cls), 18);
 
-  // Güzergah boyunca OpenStreetMap tehlike noktalarını (hemzemin/okul geçidi, tehlike tabelaları,
-  // güncel kameralar, hız tabelaları) yükler; rota çizildikten sonra arka planda çalışır.
   function loadHazards(seq, coords, nearestIndex, cameras) {
     const status = $('alerts-status');
     status.textContent = 'Hemzemin geçit, okul geçidi ve tehlike noktaları yükleniyor…';
@@ -474,13 +486,12 @@
           approx = true;
         }
       }
-      if (seq !== requestSeq) return; // daha yeni bir sorgu başladı
+      if (seq !== requestSeq) return;
 
       if (distKm == null) distKm = pathLengthKm(coords);
       clearRoute();
       renderStatus(from, to, found);
 
-      // Güzergah analizi: rotadaki gerçek hız koridorları ve il bazında denetim bölgeleri
       const dense = Veri.densify(coords);
       const nearestIndex = Veri.buildRouteIndex(dense);
       const realOwn = (rec ? (rec.hiz_koridorlari || []) : []).filter((c) => Array.isArray(c.coords) && c.coords.length > 1 && !Veri.isStraightLine(c.coords));
@@ -494,14 +505,12 @@
         seen.add(k);
         return true;
       });
-      // Listede: kayıttaki koridorlar (geometrisi olmasa da) + haritada bulunanlar
+
       const listed = mapCorridors.slice();
       (rec ? (rec.hiz_koridorlari || []) : []).forEach((c) => {
         if (!listed.some((x) => (c.id != null && x.id === c.id) || x.name === c.name)) listed.push(c);
       });
 
-      // Rotanın geçtiği iller (rota sırasıyla). Bu rota için kayıt yoksa radar/kontrol sayıları,
-      // bu illerin başka rotalardaki denetim verilerinden (il_ozet.json) tahmin edilir.
       const segs = Veri.provinceSegments(dense, ILLER);
       let estimate = null;
       if (!rec) {
@@ -540,7 +549,6 @@
 
       renderCorridors(listed);
       const breakdown = rec ? (rec.gecen_iller || []) : estimate ? estimate.rows : [];
-      // İl bazında kamera sayısı (rotanın o ilden geçen bölümündeki kameralar)
       const camCounts = new Map();
       cameras.forEach((c) => {
         for (const [id, s] of segs) if (c.routeIndex >= s.first && c.routeIndex <= s.last) { camCounts.set(id, (camCounts.get(id) || 0) + 1); break; }
@@ -551,7 +559,6 @@
       alertCum = [0];
       for (let i = 1; i < dense.length; i++) alertCum.push(alertCum[i - 1] + Veri.fastKm(dense[i - 1], dense[i]));
 
-      // Harita çizimi
       const line = addLayer(L.polyline(coords, { color: '#2563eb', weight: 6, opacity: 0.85, dashArray: approx ? '4 8' : null }));
       addLayer(L.marker(coords[0], { icon: pinIcon('pin-start') }).bindPopup(`<b>📍 Kalkış:</b> ${esc(from.ad)}`));
       addLayer(L.marker(coords[coords.length - 1], { icon: pinIcon('pin-end') }).bindPopup(`<b>🎯 Varış:</b> ${esc(to.ad)}`));
@@ -567,7 +574,6 @@
         warnPoints.push(warnPoint(`k${i}`, 'koridor', '⚡', cc[0], 'ortalama hız koridoru başlıyor', ` Hız sınırı ${limit}.`, `${limit} km/s`));
       });
 
-      // Gerçek konumlu hız kameraları (OpenStreetMap)
       cameras.forEach((c) => {
         addLayer(L.marker([c.lat, c.lon], {
           icon: symIcon(SYM.kamera(c.tur, c.hiz)),
@@ -577,8 +583,6 @@
         alerts.push({ idx: c.routeIndex, coords: [c.lat, c.lon], icon: '📷', text: `${cameraType(c).label}${c.hiz ? ` (${c.hiz} km/s)` : ''}` });
       });
 
-      // Denetim verisi il bazındadır (kesin nokta yok): radar ve kontrol işaretleri,
-      // rotanın o ilden geçen bölümünün ortasına yerleştirilir.
       if (breakdown.length) {
         breakdown.forEach((it, i) => {
           const il = ilById.get(Veri.slug(it.City || it.name));
@@ -651,7 +655,7 @@
         const lat = d.latitude ?? d.lat;
         const lon = d.longitude ?? d.lon;
         if (lat && lon) return { lat, lon, city: d.city || 'Konum' };
-      } catch (e) { /* sıradaki servis */ }
+      } catch (e) {}
     }
     return null;
   }
@@ -669,15 +673,13 @@
     if (!gpsMarker) {
       gpsMarker = L.marker(ll, { icon: symIcon(SYM.gps(), 22), zIndexOffset: 1000 }).addTo(map);
     } else gpsMarker.setLatLng(ll);
-    // Sürüş başladığında ilk konumda sokak seviyesine yaklaş (tabela ve geçitler görünsün).
+
     if (zoomOnFix) { zoomOnFix = false; if (map.getZoom() < 14) map.setView(ll, 15); else map.panTo(ll); } else map.panTo(ll);
 
-    // Gidiş yönü (son iki konumdan)
     if (lastFix && distanceKm(lastFix[0], lastFix[1], lat, lon) > 0.015) { heading = bearing(lastFix, ll); lastFix = ll; }
     else if (!lastFix) lastFix = ll;
     const ahead = (pt, tol) => heading == null || angleDiff(bearing(ll, pt.coords), heading) <= tol;
 
-    // Rota üzerindeki noktalar + rotadan bağımsız olarak gidiş yönündeki (±30°) kameralar
     const free = cameraNear && heading != null ? cameraNear(ll, 1.2).map(cameraWarning).filter((w) => ahead(w, 30)) : [];
     const community = window.Topluluk ? Topluluk.warnPoints() : [];
     const points = warnPoints.concat(free.filter((w) => !warnPoints.some((p) => p.key === w.key)), community);
@@ -686,10 +688,10 @@
       const m = distanceKm(lat, lon, pt.coords[0], pt.coords[1]) * 1000;
       if (m <= 3000 && ahead(pt, 70) && (!next || m < next.m)) next = { icon: pt.icon, what: pt.what, m };
       const due = pt.stages.filter((s) => m <= s && !warned.has(`${pt.key}@${s}`));
-      // Gidiş yönü belli olmadan (ilk konum) uyarı verilmez; arkada kalan noktalar için yanlış uyarı olmasın.
+
       if (!due.length || heading == null || !ahead(pt, 70)) return;
       const s = Math.min(...due);
-      // Bu aşama ve daha uzak aşamalar tamamlandı; aynı türden 500 m içindeki noktalar da aynı aşamada susar.
+
       points.forEach((o) => {
         if (o === pt || (o.type === pt.type && distanceKm(pt.coords[0], pt.coords[1], o.coords[0], o.coords[1]) < 0.5)) {
           o.stages.filter((x) => x >= s).forEach((x) => warned.add(`${o.key}@${x}`));
@@ -699,7 +701,6 @@
     });
     nextAlert = next;
 
-    // Yol çalışmaları: en fazla 20 sn'de bir sorgulanır, her çalışma için bir kez uyarılır.
     const now = Date.now();
     if (map.hasLayer(kgmLayer) && now - lastRoadWorkQuery > 20000) {
       lastRoadWorkQuery = now;
@@ -714,7 +715,6 @@
     }
   }
 
-  // Konum izni istenmeden önce açık bilgilendirme (Google Play "belirgin açıklama" kuralı); bir kez kabul edilir.
   const CONSENT_KEY = 'cepteradar:konum-onay';
   function locationConsent() {
     if (store(CONSENT_KEY, false)) return Promise.resolve(true);
@@ -756,7 +756,7 @@
     btn.classList.add('active');
     btn.textContent = '■ Sürüşü Bitir';
     $('gps-status-text').textContent = 'Konum aranıyor…';
-    try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) { /* desteklenmiyor */ }
+    try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
 
     let gotGps = false;
     const fallback = setTimeout(async () => {
@@ -773,7 +773,6 @@
         const acc = Math.round(pos.coords.accuracy);
         const kmh = pos.coords.speed != null && pos.coords.speed >= 0 ? pos.coords.speed * 3.6 : null;
         onPosition(pos.coords.latitude, pos.coords.longitude, `GPS ±${acc} m`);
-        // Hız sınırı eşleştirmesi için yeterince hassas konum gerekir (şebeke konumu kullanılmaz).
         const st = acc <= 60 ? Yol.update(pos.coords.latitude, pos.coords.longitude, kmh) : null;
         if (window.Topluluk && acc <= 100) Topluluk.update(pos.coords.latitude, pos.coords.longitude);
         Surus.update({ lat: pos.coords.latitude, lon: pos.coords.longitude, speed: st ? st.speed : kmh, limit: st ? st.limit : null, heading: (st && st.heading) ?? heading, next: nextAlert });
@@ -844,14 +843,7 @@
   startSel.addEventListener('change', refreshEndOptions);
   endSel.addEventListener('change', syncDisables);
   $('btn-submit').addEventListener('click', calculateRoute);
-  $('btn-swap').addEventListener('click', async () => {
-    const a = startSel.value;
-    startSel.value = endSel.value;
-    await refreshEndOptions();
-    endSel.value = a;
-    syncDisables();
-  });
-  $('btn-locate').addEventListener('click', async () => { if (await locationConsent()) locateStart(); });
+  $('btn-swap').addEventListener('click', async () => {     const a = startSel.value;     startSel.value = endSel.value;     await refreshEndOptions();     endSel.value = a;     syncDisables();   });$('btn-locate').addEventListener('click', async () => { if (await locationConsent()) locateStart(); });
   $('btn-drive').addEventListener('click', () => ($('btn-drive').classList.contains('active') ? stopDrive() : startDrive()));
   $('recent-routes').addEventListener('click', async (e) => {
     const b = e.target.closest('[data-route]');
@@ -864,7 +856,6 @@
     calculateRoute();
   });
 
-  // Mobil alt menü: bölüme kaydır ve etkin sekmeyi işaretle.
   const navLinks = document.querySelectorAll('.bottom-nav [data-nav]');
   navLinks.forEach((a) => a.addEventListener('click', (e) => {
     e.preventDefault();
