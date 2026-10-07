@@ -1,6 +1,6 @@
-# Her push'ta Cepte Radar Android APK'sını üretir.
-# APK, Actions sekmesindeki çalıştırmanın "Artifacts" bölümünden "cepteradar-apk" adıyla indirilir.
-name: Android APK
+# Her push'ta CepteRadar Android APK ve AAB paketlerini üretir.
+# Üretilen dosyalar, Actions sekmesinden "cepteradar-aab" ve "cepteradar-apk" adlarıyla indirilir.
+name: CepteRadar Android Derleme
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  apk:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,11 +31,21 @@ jobs:
       - name: Android projesini hazırla
         run: npm run android:hazirla
 
-      # ubuntu-latest çalıştırıcısında Android SDK hazır kurulu gelir (ANDROID_HOME).
-      - name: APK derle
+      # APK (Test için) ve AAB (Google Play Store için) derleme adımı
+      - name: APK ve AAB derle
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: |
+          ./gradlew assembleDebug --no-daemon
+          ./gradlew bundleRelease --no-daemon
 
+      # Google Play Console yüklemesi için .aab dosyası
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cepteradar-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
+      # Telefonda anlık test etmek için .apk dosyası
       - uses: actions/upload-artifact@v4
         with:
           name: cepteradar-apk
