@@ -8,6 +8,7 @@
   const byName = (a, b) => a.ad.localeCompare(b.ad, 'tr', { sensitivity: 'base' });
   const WARN_DISTANCE_KM = 2; // radar, koridor ve yol çalışması uyarı mesafesi
   const STORE_KEY = 'cepteradar:son-rotalar';
+  const DARK_MODE_KEY = 'cepteradar:koyu-tema';
 
   // Android WebView Ses Kilidini Açma (Ekrana ilk dokunma / tıklamada ses engine'ini uyandırır)
   function unlockAudioEngine() {
@@ -121,6 +122,23 @@
     if (store(TTS_NOTICE_KEY, false)) return;
     save(TTS_NOTICE_KEY, true);
     showTtsHelp();
+  }
+
+  // Koyu Mod / Açık Mod Yönetimi
+  function toggleDarkMode(enable) {
+    const isDark = enable ?? !document.body.classList.contains('dark-mode');
+    document.body.classList.toggle('dark-mode', isDark);
+    save(DARK_MODE_KEY, isDark);
+
+    if (typeof map !== 'undefined' && typeof streetTile !== 'undefined' && typeof darkTile !== 'undefined') {
+      if (isDark) {
+        if (map.hasLayer(streetTile)) map.removeLayer(streetTile);
+        if (!map.hasLayer(darkTile)) darkTile.addTo(map);
+      } else {
+        if (map.hasLayer(darkTile)) map.removeLayer(darkTile);
+        if (!map.hasLayer(streetTile)) streetTile.addTo(map);
+      }
+    }
   }
 
   // ---------------------------------------------------------------- HIZ KAMERALARI (OSM)
@@ -913,9 +931,18 @@
     syncDisables();
     renderRecent();
     calculateRoute();
+
+    // Uygulama açılışında kayıtlı koyu tema tercihini yükler
+    if (store(DARK_MODE_KEY, false)) {
+      toggleDarkMode(true);
+      setTimeout(() => {
+        const chk = document.getElementById('chk-dark-mode');
+        if (chk) chk.checked = true;
+      }, 100);
+    }
   }
 
-  window.CepteRadar = { map, calculateRoute, SYM, symIcon, toast, speak, locationConsent, showTtsHelp };
+  window.CepteRadar = { map, calculateRoute, SYM, symIcon, toast, speak, locationConsent, showTtsHelp, toggleDarkMode };
   init();
   setTimeout(() => {
     const s = $('splash-screen');
