@@ -13,17 +13,22 @@
   const beepSound = new Audio('assets/sesler/uyari.mp3');
   beepSound.preload = 'auto';
 
-  // Android WebView Ses Kilidini Açma (Kullanıcı ilk dokunduğunda tetiklenir)
-  document.addEventListener('touchstart', function unlockAudio() {
-    beepSound.play().then(() => {
-      beepSound.pause();
-      beepSound.currentTime = 0;
-    }).catch(() => {});
+  // Android WebView Ses Kilidini Açma (Ekrana ilk dokunma / tıklamada ses engine'ini uyandırır)
+  function unlockAudioEngine() {
+    if (beepSound) {
+      beepSound.play().then(() => {
+        beepSound.pause();
+        beepSound.currentTime = 0;
+      }).catch(() => {});
+    }
     if ('speechSynthesis' in window) {
       window.speechSynthesis.resume();
     }
-    document.removeEventListener('touchstart', unlockAudio);
-  }, { once: true });
+    document.removeEventListener('touchstart', unlockAudioEngine);
+    document.removeEventListener('click', unlockAudioEngine);
+  }
+  document.addEventListener('touchstart', unlockAudioEngine, { once: true });
+  document.addEventListener('click', unlockAudioEngine, { once: true });
 
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const toInt = (v) => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : 0; };
@@ -66,7 +71,8 @@
   function announce(pt, m) {
     try {
       beepSound.currentTime = 0;
-      beepSound.play().catch(() => {});
+      const p = beepSound.play();
+      if (p && p.catch) p.catch(() => {});
     } catch (e) {}
     speak(`Dikkat! ${distWord(m)} sonra ${pt.what}.${pt.extra}`);
     toast(`${pt.icon} ${distShort(m)} sonra ${pt.what}${pt.note ? ` (${pt.note})` : ''}`);
@@ -92,7 +98,7 @@
     }
     if (!('speechSynthesis' in window)) return;
     if (interrupt) window.speechSynthesis.cancel();
-    window.speechSynthesis.resume();
+    try { window.speechSynthesis.resume(); } catch (e) {}
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'tr-TR';
     if (trVoice) u.voice = trVoice;
