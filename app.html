@@ -88,6 +88,18 @@
             <a class="tile" href="main.html"><span>🚧</span>Yol Durumu</a>
         </div>
 
+        <details class="h-ayar" id="ayarlar">
+            <summary>⚙️ Ekran ve uyarı ayarları</summary>
+            <label><input type="checkbox" data-ayar="sessiz"> Sesli uyarıları kapat</label>
+            <label><input type="checkbox" data-ayar="gizle-flas"> Ekran parlamasını kapat</label>
+            <label><input type="checkbox" data-ayar="gizle-gps"> GPS durumunu gizle</label>
+            <label><input type="checkbox" data-ayar="gizle-limit"> Hız sınırı tabelasını gizle</label>
+            <label><input type="checkbox" data-ayar="gizle-kadran"> Hız kadranını ve HUD düğmesini gizle</label>
+            <label><input type="checkbox" data-ayar="gizle-lejant"> Lejantı gizle</label>
+            <label><input type="checkbox" data-ayar="gizle-bildir"> Bildir düğmesini gizle</label>
+            <button type="button" class="btn-white h-ses-dene" id="ses-dene">🔊 Sesi dene</button>
+        </details>
+
         <div class="h-recent">
             <h3>Son Rotalar</h3>
             <div id="recent-routes" class="recent"></div>
@@ -240,6 +252,7 @@
 
     <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
 
+    <script src="vendor/capacitor/capacitor.js"></script>
     <script src="vendor/leaflet/leaflet.js"></script>
     <script src="vendor/esri-leaflet.js"></script>
     <script src="js/koruma.js"></script>

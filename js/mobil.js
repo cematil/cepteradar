@@ -103,5 +103,40 @@
   const drive = $('btn-drive');
   new MutationObserver(() => setSheet(drive.classList.contains('active'))).observe(drive, { attributes: true, attributeFilter: ['class'] });
 
+  // Ayarlar (ana sayfa): her biri body'ye bir sınıf ekler; cihazda saklanır.
+  const AYAR_KEY = 'cepteradar:ayarlar';
+  let ayar = {};
+  try { ayar = JSON.parse(localStorage.getItem(AYAR_KEY) || '{}'); } catch (e) { ayar = {}; }
+  document.querySelectorAll('[data-ayar]').forEach((cb) => {
+    const k = cb.dataset.ayar;
+    cb.checked = !!ayar[k];
+    document.body.classList.toggle(k, cb.checked);
+    cb.addEventListener('change', () => {
+      ayar[k] = cb.checked;
+      document.body.classList.toggle(k, cb.checked);
+      try { localStorage.setItem(AYAR_KEY, JSON.stringify(ayar)); } catch (e) { /* gizli mod */ }
+    });
+  });
+  $('ses-dene').addEventListener('click', () => {
+    if (document.body.classList.contains('sessiz')) { window.CepteRadar.toast('Sesli uyarılar kapalı.'); return; }
+    window.CepteRadar.speak('Sesli uyarılar çalışıyor. İyi yolculuklar.', true);
+  });
+
+  // Android geri tuşu: açık pencereyi kapat; ana sayfada değilse ana sayfaya dön; ana sayfadaysa uygulamadan çık.
+  const CAP = window.Capacitor;
+  if (CAP && CAP.isNativePlatform && CAP.isNativePlatform() && CAP.registerPlugin) {
+    const CapApp = CAP.registerPlugin('App');
+    CapApp.addListener('backButton', () => {
+      const hud = document.querySelector('.hud:not(.hidden)');
+      if (hud) { hud.querySelector('.hud-kapat').click(); return; }
+      const modal = document.querySelector('.modal:not(.hidden)');
+      if (modal) { const x = modal.querySelector('[data-close-legal], .bildir-iptal, #how-close, [data-cevap="0"]'); if (x) x.click(); else modal.classList.add('hidden'); return; }
+      const fs = document.querySelector('.fullscreen-map');
+      if (fs) { fs.classList.remove('fullscreen-map'); document.body.classList.remove('no-scroll'); setTimeout(() => map() && map().invalidateSize(), 200); return; }
+      if (current !== 'home' && current !== 'welcome') { go('home'); return; }
+      CapApp.exitApp();
+    });
+  }
+
   show(location.hash.slice(1));
 })();

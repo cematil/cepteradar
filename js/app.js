@@ -54,11 +54,28 @@
   }
 
   // Uyarılar sıraya alınır (aynı anda birden çok uyarı birbirini kesmesin); interrupt=true öncekileri susturur.
+  // Android uygulamasında WebView sesli okuma desteklemediği için telefonun kendi ses motoru kullanılır
+  // (@capacitor-community/text-to-speech); tarayıcıda Web Speech API.
+  const CAP = window.Capacitor;
+  const nativeTts = CAP && CAP.isNativePlatform && CAP.isNativePlatform() && CAP.registerPlugin ? CAP.registerPlugin('TextToSpeech') : null;
+  let trVoice = null;
+  function pickVoice() {
+    if (!('speechSynthesis' in window)) return;
+    trVoice = window.speechSynthesis.getVoices().find((v) => /^tr/i.test(v.lang)) || null;
+  }
+  if ('speechSynthesis' in window) { pickVoice(); window.speechSynthesis.onvoiceschanged = pickVoice; }
   function speak(text, interrupt) {
+    if (document.body.classList.contains('sessiz')) return; // ayarlardan sesli uyarı kapatıldı
+    if (nativeTts) {
+      nativeTts.speak({ text, lang: 'tr-TR', rate: 1.0, pitch: 1.0, volume: 1.0, category: 'playback', queueStrategy: interrupt ? 0 : 1 }).catch(() => {});
+      return;
+    }
     if (!('speechSynthesis' in window)) return;
     if (interrupt) window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'tr-TR';
+    if (trVoice) u.voice = trVoice;
+    window.speechSynthesis.resume();
     window.speechSynthesis.speak(u);
   }
 
@@ -755,7 +772,7 @@
         clearTimeout(fallback);
         const acc = Math.round(pos.coords.accuracy);
         const kmh = pos.coords.speed != null && pos.coords.speed >= 0 ? pos.coords.speed * 3.6 : null;
-        onPosition(pos.coords.latitude, pos.coords.longitude, `GPS aktif (±${acc} m)`);
+        onPosition(pos.coords.latitude, pos.coords.longitude, `GPS ±${acc} m`);
         // Hız sınırı eşleştirmesi için yeterince hassas konum gerekir (şebeke konumu kullanılmaz).
         const st = acc <= 60 ? Yol.update(pos.coords.latitude, pos.coords.longitude, kmh) : null;
         if (window.Topluluk && acc <= 100) Topluluk.update(pos.coords.latitude, pos.coords.longitude);
