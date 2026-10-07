@@ -195,6 +195,8 @@
       </div>`;
     L.DomEvent.disableClickPropagation(div);
     div.querySelector('.legend-toggle').addEventListener('click', () => div.classList.toggle('collapsed'));
+    // Açık lejant haritaya dokununca kapanır (küçük ekranlarda düğmesi görünmez kalabiliyor)
+    map.on('click movestart', () => div.classList.add('collapsed'));
     return div;
   };
   legend.addTo(map);

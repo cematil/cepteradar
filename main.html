@@ -208,6 +208,17 @@
         .esriPopup .contentPane { background-color: #1e293b !important; color: #f8fafc !important; font-size: 12px; }
         .esriPopup .outerPointer, .esriPopup .pointer { background-color: #1e293b !important; }
 
+        /* Panel başlığı, geri ve küçült düğmeleri */
+        .sb-bas { display: flex; align-items: center; gap: 10px; }
+        .sb-bas h2 { flex: 1; margin: 0; cursor: pointer; }
+        .sb-geri, .sb-toggle {
+            flex: 0 0 auto; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+            background: #1e293b; border: 1px solid #334155; color: #fff; font-size: 18px; text-decoration: none; cursor: pointer;
+        }
+        .sb-cizgi { margin-top: 12px; }
+        #sidebar.kucuk { padding-bottom: 12px; }
+        #sidebar.kucuk > :not(.sb-bas) { display: none !important; }
+
         /* 📱 MOBİL UYUMLULUK KONTROLLERİ (RESPONSIVE DESIGN) */
         @media (max-width: 768px) {
             #navBanner {
@@ -643,8 +654,12 @@
     </div>
 
     <div id="sidebar">
-        <h2>Güzergah & Yol Durumu</h2>
-        <hr style="border:0; border-top:1px solid #334155; margin-bottom:15px;">
+        <div class="sb-bas">
+            <a class="sb-geri" href="index.html" onclick="if (history.length > 1 && document.referrer.indexOf(location.host) > -1) { history.back(); return false; }" aria-label="Cepte Radar'a dön">←</a>
+            <h2 id="sbBaslik">Güzergah & Yol Durumu</h2>
+            <button type="button" id="sbToggle" class="sb-toggle" aria-expanded="true" aria-label="Paneli küçült veya büyüt">▾</button>
+        </div>
+        <hr class="sb-cizgi" style="border:0; border-top:1px solid #334155; margin-bottom:15px;">
         
         <div class="panel-group">
             <label for="selectBaslangic">Başlangıç İli</label>
@@ -666,10 +681,17 @@
 
         <div id="sonucPaneli"></div>
     </div>
-    <!-- Cepte Radar ana ekranına dönüş -->
-    <a href="index.html" aria-label="Cepte Radar ana ekranına dön"
-       style="position:fixed;left:12px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:100001;display:inline-flex;align-items:center;gap:6px;padding:11px 16px;border-radius:999px;background:#121a2b;border:1px solid #334155;color:#fff;font:700 13px/1 -apple-system,Segoe UI,Roboto,sans-serif;text-decoration:none;box-shadow:0 8px 22px rgba(0,0,0,.45)">
-        ← Cepte Radar
-    </a>
+    <script>
+        // Panel küçült / büyüt; telefonda rota oluşturulunca harita görünsün diye kendiliğinden küçülür.
+        (function () {
+            var sb = document.getElementById('sidebar'), btn = document.getElementById('sbToggle');
+            function kucult(evet) { sb.classList.toggle('kucuk', evet); btn.textContent = evet ? '▴' : '▾'; btn.setAttribute('aria-expanded', String(!evet)); }
+            btn.addEventListener('click', function () { kucult(!sb.classList.contains('kucuk')); });
+            document.getElementById('sbBaslik').addEventListener('click', function () { if (sb.classList.contains('kucuk')) kucult(false); });
+            document.getElementById('btnHesapla').addEventListener('click', function () {
+                if (window.matchMedia('(max-width: 768px)').matches) setTimeout(function () { kucult(true); }, 300);
+            });
+        })();
+    </script>
 </body>
 </html>
