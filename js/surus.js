@@ -212,7 +212,7 @@
 
   // ------------------------------------------------------------------ dışa açık
   function flash(type) {
-    if (!el.flash) return;
+    if (!el.flash || document.body.classList.contains('gizle-flas')) return;
     el.flash.style.setProperty('--flas', FLASH[type] || '#f97316');
     el.flash.classList.remove('on');
     void el.flash.offsetWidth; // animasyonu yeniden başlat

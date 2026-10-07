@@ -207,3 +207,25 @@ body[data-screen="welcome"] .tabbar, body[data-screen="map"] .tabbar { display: 
 
 .scr-map .bildir-btn { bottom: calc(var(--sheet-h, 250px) + 74px); }
 .scr-map .bld-soru { top: calc(176px + var(--safe-t)); }
+
+/* Ana sayfa ayarları */
+.h-ayar { margin: 14px 18px 0; padding: 4px 16px 12px; background: #fff; border-radius: 18px; box-shadow: 0 8px 20px rgba(15, 23, 42, .06); }
+.h-ayar summary { padding: 10px 0 6px; font-weight: 800; cursor: pointer; }
+.h-ayar label { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 14px; border-top: 1px solid var(--line); }
+.h-ayar input { width: 20px; height: 20px; accent-color: var(--brand); }
+.h-ayar .h-ses-dene { margin-top: 10px; background: #eef2ff; padding: 11px; font-size: 14px; }
+@media (min-width: 720px) { .h-ayar { max-width: 528px; margin-left: auto; margin-right: auto; } }
+body.gizle-gps .gps-status, body.gizle-limit .limit-box, body.gizle-kadran .kadran,
+body.gizle-lejant .map-legend, body.gizle-bildir .bildir-btn { display: none !important; }
+
+/* Daha küçük GPS yazısı */
+.scr-map .gps-status { padding: 3px 9px; font-size: 10px; }
+
+/* Tam ekran haritada öğeler alt karta göre değil ekran kenarlarına göre yerleşsin */
+.scr-map .map-card.fullscreen-map .leaflet-bottom { bottom: var(--safe-b); }
+.scr-map .map-card.fullscreen-map .leaflet-top { top: var(--safe-t); }
+.scr-map .map-card.fullscreen-map .gps-status { top: calc(10px + var(--safe-t)); }
+.scr-map .map-card.fullscreen-map .limit-box { top: calc(36px + var(--safe-t)); }
+.scr-map .map-card.fullscreen-map .koridor-panel, .scr-map .map-card.fullscreen-map .bld-soru { top: calc(104px + var(--safe-t)); }
+.scr-map .map-card.fullscreen-map .kadran { bottom: calc(76px + var(--safe-b)); }
+.scr-map .map-card.fullscreen-map .bildir-btn { bottom: calc(76px + var(--safe-b)); }
