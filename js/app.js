@@ -9,18 +9,8 @@
   const WARN_DISTANCE_KM = 2; // radar, koridor ve yol çalışması uyarı mesafesi
   const STORE_KEY = 'cepteradar:son-rotalar';
 
-  // Ses Efekti (Önceden Yükleme)
-  const beepSound = new Audio('assets/sesler/uyari.mp3');
-  beepSound.preload = 'auto';
-
   // Android WebView Ses Kilidini Açma (Ekrana ilk dokunma / tıklamada ses engine'ini uyandırır)
   function unlockAudioEngine() {
-    if (beepSound) {
-      beepSound.play().then(() => {
-        beepSound.pause();
-        beepSound.currentTime = 0;
-      }).catch(() => {});
-    }
     if ('speechSynthesis' in window) {
       window.speechSynthesis.resume();
     }
@@ -68,13 +58,10 @@
   const angleDiff = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
   const distWord = (m) => (m >= 1000 ? `${String(m / 1000).replace('.', ',')} kilometre` : `${m} metre`);
   const distShort = (m) => (m >= 1000 ? `${String(m / 1000).replace('.', ',')} km` : `${m} m`);
+
+  // MP3/Bip dosyaları yerine doğrudan Türkçe Metin Okuma (TTS) ile sesli konuşur
   function announce(pt, m) {
-    try {
-      beepSound.currentTime = 0;
-      const p = beepSound.play();
-      if (p && p.catch) p.catch(() => {});
-    } catch (e) {}
-    speak(`Dikkat! ${distWord(m)} sonra ${pt.what}.${pt.extra}`);
+    speak(`Dikkat! ${distWord(m)} sonra ${pt.what}.${pt.extra}`, true);
     toast(`${pt.icon} ${distShort(m)} sonra ${pt.what}${pt.note ? ` (${pt.note})` : ''}`);
     if (window.Surus) Surus.flash(pt.type);
   }
@@ -103,6 +90,37 @@
     u.lang = 'tr-TR';
     if (trVoice) u.voice = trVoice;
     window.speechSynthesis.speak(u);
+  }
+
+  // Kalıcı Rehber Modalı (Butondan tıklandığında her zaman açılır)
+  function showTtsHelp() {
+    const box = document.createElement('div');
+    box.className = 'modal';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+    box.innerHTML = `<div class="modal-box tts-onay" style="text-align: left; max-width: 420px; padding: 20px;">
+      <h3 style="margin-top:0; color:#2563eb;">🔊 Sesli Uyarı ve Google TTS Rehberi</h3>
+      <p style="font-size:14px; line-height:1.5;">Uygulamada sesleri duyamıyorsanız veya konuşma dili farklı geliyorsa telefonunuzun metin okuma motorunu kontrol edin.</p>
+      <ol style="font-size:13px; margin:10px 0; padding-left:20px; line-height:1.6;">
+        <li>Telefonunuzun <b>Ayarlar > Genel Yönetim</b> menüsünü açın.</li>
+        <li><b>Metin-Konuşma (Text-To-Speech)</b> seçeneğine girin.</li>
+        <li>Tercih edilen motoru <b>Google Metin Okuma</b> yapın (Samsung TTS yerine Google TTS seçiniz).</li>
+        <li>Dil ayarının <b>Türkçe</b> olduğundan emin olun.</li>
+      </ol>
+      <div style="text-align: right; margin-top: 15px;">
+        <button type="button" class="btn btn-primary" id="btn-tts-ok" style="padding: 8px 16px;">Anladım</button>
+      </div>
+    </div>`;
+    document.body.appendChild(box);
+    document.getElementById('btn-tts-ok').addEventListener('click', () => box.remove());
+  }
+
+  // İlk rota oluşturulduğunda 1 defalık otomatik açılacak kontrol mekanizması
+  const TTS_NOTICE_KEY = 'cepteradar:tts-bildirim-gosterildi';
+  function showTtsNotice() {
+    if (store(TTS_NOTICE_KEY, false)) return;
+    save(TTS_NOTICE_KEY, true);
+    showTtsHelp();
   }
 
   // ---------------------------------------------------------------- HIZ KAMERALARI (OSM)
@@ -623,6 +641,9 @@
       rememberRoute(from.id, to.id);
       renderAlerts();
       loadHazards(seq, coords, nearestIndex, cameras);
+
+      // Rota başarıyla oluşturulduğunda ilk kullanıma özel TTS bilgilendirmesini tetikler
+      showTtsNotice();
     } catch (err) {
       console.error(err);
       if (seq === requestSeq) {
@@ -758,6 +779,7 @@
 
   async function startDrive() {
     if (!(await locationConsent())) return;
+
     const btn = $('btn-drive');
     btn.classList.add('active');
     btn.textContent = '■ Sürüşü Bitir';
@@ -893,7 +915,7 @@
     calculateRoute();
   }
 
-  window.CepteRadar = { map, calculateRoute, SYM, symIcon, toast, speak, locationConsent };
+  window.CepteRadar = { map, calculateRoute, SYM, symIcon, toast, speak, locationConsent, showTtsHelp };
   init();
   setTimeout(() => {
     const s = $('splash-screen');
