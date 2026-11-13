@@ -60,3 +60,13 @@ if (process.env.CEPTE_KEYSTORE_FILE && !gradle.includes('signingConfigs {')) {
 }
 fs.writeFileSync(gradlePath, gradle);
 console.log(`✓ build.gradle: sürüm ${pkg.version} (${versionCode})`);
+
+// AdMob uygulama kimliği (zorunlu; yoksa uygulama açılışta kapanır). Varsayılan: Google'ın TEST kimliği.
+// Gerçek kimlik: CEPTE_ADMOB_APP_ID ortam değişkeni (ör. ca-app-pub-XXXX~YYYY).
+const admobId = process.env.CEPTE_ADMOB_APP_ID || 'ca-app-pub-3940256099942544~3347511713';
+let man = fs.readFileSync(manifestPath, 'utf8');
+if (!man.includes('com.google.android.gms.ads.APPLICATION_ID')) {
+  man = man.replace(/<application([^>]*)>/, `<application$1>\n        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="${admobId}" />`);
+  fs.writeFileSync(manifestPath, man);
+  console.log(`✓ AdMob uygulama kimliği eklendi (${admobId.startsWith('ca-app-pub-3940256099942544') ? 'TEST' : 'gerçek'})`);
+}

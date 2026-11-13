@@ -157,3 +157,15 @@ Kendi alan adınız varsa (ör. cepteradar.com) oradaki adresi kullanın.
 
 Ücretsiz Spark planı başlangıç için yeterlidir (günlük okuma/yazma kotaları). Kullanıcı sayısı artınca
 Firebase konsolundaki **Kullanım** sekmesinden takip edin.
+
+## 9. Reklamlar (AdMob) ve izin ekranı (UMP)
+
+Şu an Google'ın **test** reklamları açık (`js/reklam.js`, `TEST = true`). Avrupa/İngiltere kullanıcılarına Google'ın UMP izin
+ekranı reklamdan önce gösterilir; ayarlarda "Reklam gizlilik seçenekleri" düğmesi bu bölgelerde görünür.
+Gerçek reklama geçmeden önce:
+1. AdMob → **Gizlilik ve mesajlaşma → GDPR** mesajını oluşturup yayınlayın (UMP ekranı buradan gelir).
+2. Uygulama Play'de yayınlanınca AdMob'da mağaza bağlantısını yapın ve onayı bekleyin.
+3. `js/reklam.js` içinde `BANNER_ID`'yi kendi banner kimliğinizle değiştirip `TEST = false` yapın; GitHub'da
+   `CEPTE_ADMOB_APP_ID` (ca-app-pub-XXXX~YYYY) değişkenini APK/AAB iş akışlarına ekleyin.
+4. Play **Veri güvenliği**: "Cihaz veya diğer kimlikler" ve "Yaklaşık konum" için **Reklam** amacıyla paylaşım ekleyin,
+   Uygulama içeriği → **Reklamlar: Evet**; gizlilik politikasına AdMob (Google) bölümünü ekleyin.
