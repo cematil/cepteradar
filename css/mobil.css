@@ -266,3 +266,6 @@ body.dark-mode .btn-white {
   background-color: #1e293b !important;
   color: #60a5fa !important;
 }
+
+/* AdMob banner'ı (alt menünün hemen üstünde) içeriği örtmesin */
+body.reklam-var .scr-home, body.reklam-var .scr-details { padding-bottom: calc(var(--tab-h) + var(--safe-b) + 76px); }
